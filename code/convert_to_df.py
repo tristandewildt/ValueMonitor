@@ -111,7 +111,13 @@ def convert_to_df(file_name):
     
     return df
 
-
+def import_corpus(corpus_path):
+    
+    root = os.getcwd()
+    datafile = root + '/data/' + corpus_path  
+    print(datafile)
+    
+    
 #file_name = "scopus_nucl_energy.csv"
 #file_name = "scopus_nucl_energy.xlsx"
 #file_name = "Covid_data.txt"
