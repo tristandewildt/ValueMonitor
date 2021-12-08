@@ -15,6 +15,7 @@ def convert_from_csv_or_xlsx_to_df(datafile, extension):
         df = pd.read_csv(datafile, encoding = "ISO-8859-1")
     if extension == '.xlsx':
         df = pd.read_excel(datafile) 
+
     
     ''' Check if strange characters before and after brackets'''
     for column in df:
