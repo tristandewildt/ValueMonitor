@@ -7,6 +7,7 @@ import nltk
 nltk.download('punkt')
 import dateutil.parser
 import rispy
+from RISparser import readris
 
 
 from os import path
@@ -115,6 +116,8 @@ def convert_to_df(file_name):
     return df
 
 
+
+
 def import_file_and_show_columns(corpus, file_format):
     file_format = file_format.lower()
     
@@ -125,14 +128,18 @@ def import_file_and_show_columns(corpus, file_format):
             df = pd.read_excel(corpus) 
         if file_format == 'json':
             df = pd.read_json(corpus)
-        if file_format == 'ris':
-            df = pd.DataFrame(rispy.load(corpus))
+    #    if file_format == 'ris':
+    #        with open(corpus, 'r', encoding="utf8", errors='ignore') as bibliography_file:
+    #            df = pd.DataFrame(rispy.load(bibliography_file))
         if file_format == 'pickle':
             df = pd.read_pickle(corpus)
     except:
         print("Error")
     
     # if not written well 
+    # if inconherence filetype
+    # if file is not found
+    # if file type is not one of the accepted ones
 
     
     print(df.info())
