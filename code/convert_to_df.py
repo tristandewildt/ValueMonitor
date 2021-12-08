@@ -112,6 +112,21 @@ def convert_to_df(file_name):
     
     return df
 
+
+def import_file(corpus):
+    
+    file = list(corpus.values())[0]
+
+    df = pd.read_csv(file, encoding = "ISO-8859-1")
+    
+    print(df.info())
+
+
+
+
+
+
+
 def show_columns(corpus):
     
     '''first need to check what type of file this is'''
