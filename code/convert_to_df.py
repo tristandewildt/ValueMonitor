@@ -123,7 +123,8 @@ def import_file_and_show_columns(corpus, file_format):
     
     try:
         if file_format == 'csv':
-            df = pd.read_csv(corpus, encoding = "ISO-8859-1")
+            #df = pd.read_csv(corpus, encoding = "ISO-8859-1")
+            df = pd.read_csv(corpus, encoding = 'utf-8-sig')
         if file_format == 'xlsx':
             df = pd.read_excel(corpus) 
         if file_format == 'json':
@@ -133,20 +134,18 @@ def import_file_and_show_columns(corpus, file_format):
     #            df = pd.DataFrame(rispy.load(bibliography_file))
         if file_format == 'pickle':
             df = pd.read_pickle(corpus)
-    except:
-        print("Error")
-    
-    # if not written well 
-    # if inconherence filetype
-    # if file is not found
-    # if file type is not one of the accepted ones
-
+    except ValueError:
+        print("Error: check that the format of the file you provided is an accepted one, and the variable 'file_format' matches the type of file provided as input")
+      
+    '''
+    Possible errors:
+    - if not written well 
+    - if inconherence file_format
+    - if file is not found
+    - if file type is not one of the accepted ones
+    '''
     
     print(df.info())
-
-
-
-
     return df
 
 
