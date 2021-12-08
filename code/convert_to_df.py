@@ -6,6 +6,8 @@ import re
 import nltk
 nltk.download('punkt')
 import dateutil.parser
+import rispy
+
 
 from os import path
 #from nltk.tokenize import word_tokenize
@@ -113,18 +115,32 @@ def convert_to_df(file_name):
     return df
 
 
-def import_file(corpus):
+def import_file_and_show_columns(corpus, file_format):
+    file_format = file_format.lower()
     
-    file = list(corpus.values())[0]
+    try:
+        if file_format == 'csv':
+            df = pd.read_csv(corpus, encoding = "ISO-8859-1")
+        if file_format == 'xlsx':
+            df = pd.read_excel(corpus) 
+        if file_format == 'json':
+            df = pd.read_json(corpus)
+        if file_format == 'ris':
+            df = pd.DataFrame(rispy.load(corpus))
+        if file_format == 'pickle':
+            df = pd.read_pickle(corpus)
+    except:
+        print("Error")
+    
+    # if not written well 
 
-    df = pd.read_csv(file, encoding = "ISO-8859-1")
     
     print(df.info())
 
 
 
 
-
+    return df
 
 
 def show_columns(corpus):
