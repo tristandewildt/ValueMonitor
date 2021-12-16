@@ -156,11 +156,12 @@ def prepare_df(df, list_columns):
     df = df.fillna('')
     # combine columns
     text_cols = list_columns[0]
-    print(text_cols)
     
-    #df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    df['Text'] = df[text_cols].agg(' '.join, axis=1)
+    df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    #df['Text'] = df[text_cols].agg(' '.join, axis=1)
     df=df.rename(columns = {text_cols[1][0]:'Date'})
+    
+    print(df.info())
     
     df2 = df[['Text', 'Date']]
  #   df2.columns = ['[Text_for_analysis]', '[Date]']
@@ -173,7 +174,7 @@ def prepare_df(df, list_columns):
     
     
     
-    
+    ''' Raise error when wrong variables are put in, or some are missing. '''
    
 
 
