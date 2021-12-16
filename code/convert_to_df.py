@@ -127,8 +127,9 @@ def filter_stopwords_verbs(x):
 
 def import_file_and_show_columns(corpus, file_format):
     file_format = file_format.lower()
+    accepted_formats = ['csv', 'xlsx', 'json', 'pandas_df']
     
-    try:
+    if file_format in accepted_formats:
         if file_format == 'csv':
             #df = pd.read_csv(corpus, encoding = "ISO-8859-1")
             df = pd.read_csv(corpus, encoding = 'utf-8-sig')
@@ -141,9 +142,15 @@ def import_file_and_show_columns(corpus, file_format):
     #            df = pd.DataFrame(rispy.load(bibliography_file))
         if file_format == 'pandas_df':
             df = pd.read_pickle(corpus)
-    except ValueError:
-        print("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
-      
+        
+        print(df.info())
+        print("STEP FINISHED")
+        return df  
+    
+    else:
+        raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
+    
+
     '''
     Possible errors:
     - if not written well 
@@ -152,29 +159,33 @@ def import_file_and_show_columns(corpus, file_format):
     - if file type is not one of the accepted ones
     '''
     
-    print(df.info())
-    return df
+
 
 
 
 
 def prepare_df(df, list_columns):
-        
-    df = df.fillna('')
-    text_cols = list_columns[0]
     
-    df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    df=df.rename(columns = {list_columns[1][0]:'Date'})    
-
-    df2 = df[['Text', 'Date']].copy()
-
-    df2['Text'] = df2['Text'].str.lower()
-    df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
-    df2['Text'] = df2['Text'].map(lambda x: re.sub(r'http\S+', ' ', str(x)))
-    df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
-    df2['Text'] = df2['Text'].map(lambda x: " ".join(x))
-    df2['Text'] = df2['Text'].apply(filter_stopwords_verbs)
+    try:    
+        df = df.fillna('')
+        text_cols = list_columns[0]
+        
+        df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        df=df.rename(columns = {list_columns[1][0]:'Date'})    
+    
+        df2 = df[['Text', 'Date']].copy()
+    
+        df2['Text'] = df2['Text'].str.lower()
+        df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
+        df2['Text'] = df2['Text'].map(lambda x: re.sub(r'http\S+', ' ', str(x)))
+        df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
+        df2['Text'] = df2['Text'].map(lambda x: " ".join(x))
+        df2['Text'] = df2['Text'].apply(filter_stopwords_verbs)
+    except ValueError:
+        print("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
+      
  
+    print("STEP FINISHED")
     return df2 
 
     ''' Raise error when wrong variables are put in, or some are missing. '''
@@ -193,14 +204,14 @@ def show_columns(corpus):
     print(df.info())
 
 
-#corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
-#file_format = "csv"
+corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
+file_format = "csvsd"
 
-#columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
-#column_as_date = ["Year"]
-#list_columns = [columns_to_select_as_text, column_as_date]
+columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
+column_as_date = ["Year"]
+list_columns = [columns_to_select_as_text, column_as_date]
 
-#df = import_file_and_show_columns(corpus, file_format)
+df = import_file_and_show_columns(corpus, file_format)
 #df = prepare_df(df, list_columns)
 
 #print(df.head())
