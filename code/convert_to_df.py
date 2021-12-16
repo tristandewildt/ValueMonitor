@@ -132,10 +132,10 @@ def import_file_and_show_columns(corpus, file_format):
     #    if file_format == 'ris':
     #        with open(corpus, 'r', encoding="utf8", errors='ignore') as bibliography_file:
     #            df = pd.DataFrame(rispy.load(bibliography_file))
-        if file_format == 'pickle':
+        if file_format == 'pandas_df':
             df = pd.read_pickle(corpus)
     except ValueError:
-        print("Error: check that the format of the file you provided is an accepted one, and the variable 'file_format' matches the type of file provided as input")
+        print("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
       
     '''
     Possible errors:
@@ -147,6 +147,29 @@ def import_file_and_show_columns(corpus, file_format):
     
     print(df.info())
     return df
+
+
+def prepare_df(df, list_columns):
+    
+    df = df.fillna('')
+    # combine columns
+    text_cols = list_columns[0]
+    df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df=df.rename(columns = {text_cols[1][0]:'Date'})
+    
+    df2 = df[['Text', 'Date']]
+ #   df2.columns = ['[Text_for_analysis]', '[Date]']
+    return df2 
+    # add date and remove all other
+    
+    
+    
+    # process texts (make sure all text is set to low from here
+    
+    
+    
+    
+   
 
 
 def show_columns(corpus):
