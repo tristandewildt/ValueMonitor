@@ -158,9 +158,10 @@ def prepare_df(df, list_columns):
     text_cols = list_columns[0]
     
     df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    print(list_columns[1][0])
-    df=df.rename(columns = {list_columns[1][0]:'Date'}, inplace = True)    
+    print(df.info())
+    df=df.rename(columns = {list_columns[1][0]:'Date'})    
     
+    #print(df)
     df2 = df[['Text', 'Date']]
  #   df2.columns = ['[Text_for_analysis]', '[Date]']
     return df2 
@@ -192,8 +193,19 @@ def show_columns(corpus):
 #file_name = "Covid_data.txt"
 #root = '/gdrive/My Drive/Topic_modelling_analysis/'
 
+#corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
+#file_format = "csv"
 
-#convert_to_df(file_name)
+
+
+#columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
+#column_as_date = ["Year"]
+
+#list_columns = [columns_to_select_as_text, column_as_date]
+
+#df = import_file_and_show_columns(corpus, file_format)
+#df = prepare_df(df, list_columns)
+
 
 
 
