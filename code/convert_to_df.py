@@ -130,7 +130,7 @@ def import_file_and_show_columns(corpus, file_format):
     accepted_formats = ['csv', 'xlsx', 'json', 'pandas_df']
     
     if file_format not in accepted_formats:
-        raise ValueError("Error: check that the format of the file you provided is an accepted one and written correctly.")
+        raise ValueError("Error: check that the format of the file you provided is an accepted one and is written correctly.")
         
     else:
         try:
@@ -151,7 +151,7 @@ def import_file_and_show_columns(corpus, file_format):
             print("STEP FINISHED")
             return df  
         except:
-            raise ValueError("Error: check that the variable 'file_format' matches the file provided as input.")
+            raise ValueError("Error: check that the variable 'file_format' matches the file that you provided as input.")
     
     
     #else:
@@ -175,7 +175,7 @@ def prepare_df(df, list_columns):
     
     
     if all(item in list(df) for item in list_columns[0]) == False or list_columns[1][0] not in list(df):
-        raise ValueError("Error: check that the columns specified are written correctly.")
+        raise ValueError("Error: check that the columns you specified are written correctly.")
         
     else:
           
