@@ -129,7 +129,12 @@ def import_file_and_show_columns(corpus, file_format):
     file_format = file_format.lower()
     accepted_formats = ['csv', 'xlsx', 'json', 'pandas_df']
     
-    if file_format in accepted_formats:
+    if file_format not in accepted_formats:
+        raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
+    
+        
+        
+    else:
         if file_format == 'csv':
             #df = pd.read_csv(corpus, encoding = "ISO-8859-1")
             df = pd.read_csv(corpus, encoding = 'utf-8-sig')
@@ -147,8 +152,8 @@ def import_file_and_show_columns(corpus, file_format):
         print("STEP FINISHED")
         return df  
     
-    else:
-        raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
+    #else:
+    #    raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
     
 
     '''
@@ -205,7 +210,7 @@ def show_columns(corpus):
 
 
 corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
-file_format = "csvsd"
+file_format = "csv"
 
 columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
 column_as_date = ["Year"]
