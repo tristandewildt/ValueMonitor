@@ -158,10 +158,8 @@ def prepare_df(df, list_columns):
     text_cols = list_columns[0]
     
     df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    print(text_cols[1][0])
-    df=df.rename(columns = {text_cols[1][0]:'Date'}, inplace = True)
-    
-    print(df.info())
+    print(list_columns[1][0])
+    df=df.rename(columns = {list_columns[1][0]:'Date'}, inplace = True)    
     
     df2 = df[['Text', 'Date']]
  #   df2.columns = ['[Text_for_analysis]', '[Date]']
