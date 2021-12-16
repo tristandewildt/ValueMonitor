@@ -130,27 +130,29 @@ def import_file_and_show_columns(corpus, file_format):
     accepted_formats = ['csv', 'xlsx', 'json', 'pandas_df']
     
     if file_format not in accepted_formats:
-        raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
-    
-        
+        raise ValueError("Error: check that the format of the file you provided is an accepted one and written correctly.")
         
     else:
-        if file_format == 'csv':
-            #df = pd.read_csv(corpus, encoding = "ISO-8859-1")
-            df = pd.read_csv(corpus, encoding = 'utf-8-sig')
-        if file_format == 'xlsx':
-            df = pd.read_excel(corpus) 
-        if file_format == 'json':
-            df = pd.read_json(corpus)
+        try:
+            if file_format == 'csv':
+                #df = pd.read_csv(corpus, encoding = "ISO-8859-1")
+                df = pd.read_csv(corpus, encoding = 'utf-8-sig')
+            if file_format == 'xlsx':
+                df = pd.read_excel(corpus) 
+            if file_format == 'json':
+                df = pd.read_json(corpus)
     #    if file_format == 'ris':
     #        with open(corpus, 'r', encoding="utf8", errors='ignore') as bibliography_file:
     #            df = pd.DataFrame(rispy.load(bibliography_file))
-        if file_format == 'pandas_df':
-            df = pd.read_pickle(corpus)
+            if file_format == 'pandas_df':
+                df = pd.read_pickle(corpus)
         
-        print(df.info())
-        print("STEP FINISHED")
-        return df  
+            print(df.info())
+            print("STEP FINISHED")
+            return df  
+        except:
+            raise ValueError("Error: check that the variable 'file_format' matches the file provided as input.")
+    
     
     #else:
     #    raise ValueError("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
@@ -171,29 +173,35 @@ def import_file_and_show_columns(corpus, file_format):
 
 def prepare_df(df, list_columns):
     
-    try:    
+    
+    if all(item in list(df) for item in list_columns[0]) == False or list_columns[1][0] not in list(df):
+        raise ValueError("Error: check that the columns specified are written correctly.")
+        
+    else:
+          
         df = df.fillna('')
         text_cols = list_columns[0]
-        
+           
         df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
         df=df.rename(columns = {list_columns[1][0]:'Date'})    
-    
+        
         df2 = df[['Text', 'Date']].copy()
-    
+        
         df2['Text'] = df2['Text'].str.lower()
         df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
         df2['Text'] = df2['Text'].map(lambda x: re.sub(r'http\S+', ' ', str(x)))
         df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
         df2['Text'] = df2['Text'].map(lambda x: " ".join(x))
         df2['Text'] = df2['Text'].apply(filter_stopwords_verbs)
-    except ValueError:
-        print("Error: check that the format of the file you provided is an accepted one, or that the variable 'file_format' matches the type of file provided as input")
-      
+            
+        print("STEP FINISHED")
+        return df2
+        #except ValueError
+            #raise ValueError("Error: check that the columns specified are written correctly.")
+            
  
-    print("STEP FINISHED")
-    return df2 
+ 
 
-    ''' Raise error when wrong variables are put in, or some are missing. '''
    
 
 
@@ -209,14 +217,14 @@ def show_columns(corpus):
     print(df.info())
 
 
-corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
-file_format = "csv"
+#corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
+#file_format = "csv"
 
-columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
-column_as_date = ["Year"]
-list_columns = [columns_to_select_as_text, column_as_date]
+#columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
+#column_as_date = ["Year"]
+#list_columns = [columns_to_select_as_text, column_as_date]
 
-df = import_file_and_show_columns(corpus, file_format)
+#df = import_file_and_show_columns(corpus, file_format)
 #df = prepare_df(df, list_columns)
 
 #print(df.head())
