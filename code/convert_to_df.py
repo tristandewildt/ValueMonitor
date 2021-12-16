@@ -8,6 +8,8 @@ nltk.download('punkt')
 import dateutil.parser
 import rispy
 from RISparser import readris
+from nltk.tag.perceptron import PerceptronTagger
+tagger=PerceptronTagger()
 
 
 from os import path
@@ -115,7 +117,12 @@ def convert_to_df(file_name):
     
     return df
 
-
+def filter_stopwords_verbs(x):
+    
+    pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
+    remaining_text = [s for s in pos_tagged_tokens if s[1].startswith('NN') or s[1] == "JJ" or s[0] == "5G" or s[0] == "6G" or s[0] == "5g" or s[0] == "6g"]
+    remaining_text_untolken = ' '.join([word for word, pos in remaining_text])
+    return remaining_text_untolken
 
 
 def import_file_and_show_columns(corpus, file_format):
@@ -150,29 +157,26 @@ def import_file_and_show_columns(corpus, file_format):
 
 
 def prepare_df(df, list_columns):
-    
-    print(list_columns)
-    
+        
     df = df.fillna('')
-    # combine columns
     text_cols = list_columns[0]
     
     df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-    print(df.info())
     df=df.rename(columns = {list_columns[1][0]:'Date'})    
-    
-    #print(df)
+
     df2 = df[['Text', 'Date']]
- #   df2.columns = ['[Text_for_analysis]', '[Date]']
+    
+    df2['Text'] = df2['Text'].str.lower()
+
+ 
+    df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
+    df2['Text'] = df2['Text'].map(lambda x: re.sub(r'http\S+', ' ', str(x)))
+    df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
+    df2['Text'] = df2['Text'].map(lambda x: " ".join(x))
+    df2['Text'] = df2['Text'].apply(filter_stopwords_verbs)
+ 
     return df2 
-    # add date and remove all other
-    
-    
-    
-    # process texts (make sure all text is set to low from here
-    
-    
-    
+
     ''' Raise error when wrong variables are put in, or some are missing. '''
    
 
@@ -188,24 +192,17 @@ def show_columns(corpus):
    
     print(df.info())
 
-#file_name = "scopus_nucl_energy.csv"
-#file_name = "scopus_nucl_energy.xlsx"
-#file_name = "Covid_data.txt"
-#root = '/gdrive/My Drive/Topic_modelling_analysis/'
 
 #corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
 #file_format = "csv"
 
-
-
 #columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
 #column_as_date = ["Year"]
-
 #list_columns = [columns_to_select_as_text, column_as_date]
 
 #df = import_file_and_show_columns(corpus, file_format)
 #df = prepare_df(df, list_columns)
 
-
+#print(df.head())
 
 
