@@ -156,6 +156,8 @@ def prepare_df(df, list_columns):
     df = df.fillna('')
     # combine columns
     text_cols = list_columns[0]
+    print(text_cols)
+    
     #df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
     df['Text'] = df[text_cols].agg(' '.join, axis=1)
     df=df.rename(columns = {text_cols[1][0]:'Date'})
