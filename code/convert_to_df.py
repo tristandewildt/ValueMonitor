@@ -151,10 +151,13 @@ def import_file_and_show_columns(corpus, file_format):
 
 def prepare_df(df, list_columns):
     
+    print(list_columns)
+    
     df = df.fillna('')
     # combine columns
     text_cols = list_columns[0]
-    df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    #df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df['Text'] = df[text_cols].agg(' '.join, axis=1)
     df=df.rename(columns = {text_cols[1][0]:'Date'})
     
     df2 = df[['Text', 'Date']]
