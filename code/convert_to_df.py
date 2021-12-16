@@ -156,6 +156,8 @@ def import_file_and_show_columns(corpus, file_format):
     return df
 
 
+
+
 def prepare_df(df, list_columns):
         
     df = df.fillna('')
@@ -164,11 +166,9 @@ def prepare_df(df, list_columns):
     df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
     df=df.rename(columns = {list_columns[1][0]:'Date'})    
 
-    df2 = df[['Text', 'Date']]
-    
-    df2['Text'] = df2['Text'].str.lower()
+    df2 = df[['Text', 'Date']].copy()
 
- 
+    df2['Text'] = df2['Text'].str.lower()
     df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
     df2['Text'] = df2['Text'].map(lambda x: re.sub(r'http\S+', ' ', str(x)))
     df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
