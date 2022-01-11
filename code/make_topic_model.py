@@ -106,7 +106,7 @@ def find_best_number_of_topics(df, number_of_documents_in_analysis, min_number_o
     
     return best_number_of_topics
 
-def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_rejected_words):
+def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_anchor_words_other_topics, list_rejected_words):
     ''' Think here what could be some errors that people could make with regard to input data '''
     
     df_reduced = reduce_df(df, number_of_documents_in_analysis)   
@@ -121,6 +121,9 @@ def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analy
         for i in range(len(value_lowercase)):
             value_lowercase[i] = value_lowercase[i].lower()
         anchors[counter] = value_lowercase
+        counter += 1
+    for i in list_anchor_words_other_topics:
+        anchors[counter]=i
         counter += 1
     anchors[counter]=list_rejected_words
     

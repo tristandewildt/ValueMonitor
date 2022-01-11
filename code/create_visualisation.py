@@ -1,5 +1,3 @@
-# Here it should first check what type of file it is. 
-#If it is not one of the format, it should return that the format is wrong. 
 import os
 import pandas as pd
 import time
@@ -10,10 +8,12 @@ import _pickle as cPickle
 import pickle
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from matplotlib import cm
 from scipy.ndimage.filters import gaussian_filter1d
 from corextopic import corextopic as ct
 from datetime import datetime
 import dateutil.parser
+from dateutil.relativedelta import relativedelta
 
 
 def topic_int_or_string(Topic_selected, dict_anchor_words):
@@ -46,6 +46,9 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     
     x = pd.Series(combined_df.index.values)
     x = x.dt.to_pydatetime().tolist()
+
+    x = [ z - relativedelta(years=1) for z in x]
+
     
     name_values = list(copy_dict_anchor_words.keys())
     
@@ -56,16 +59,14 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
         values_to_include_in_visualisation = name_values
 
     sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
-    
-    #print()
 
-    counter = 0
+    print(values_to_include_in_visualisation)
+
     fig, ax1 = plt.subplots()
-    for value in combined_df:
-        if value != "count" and value in values_to_include_in_visualisation:
+    for value in values_to_include_in_visualisation:
             ysmoothed = gaussian_filter1d(combined_df[value].tolist(), sigma=sigma)
-            ax1.plot(x, ysmoothed, label=combined_df.columns[counter], linewidth=2)
-        counter += 1
+            ax1.plot(x, ysmoothed, label=str(value), linewidth=2)
+
     
     ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
     ax1.set_ylabel('Percentage of documents addressing each value \n per unit of time (lines)  (%)', fontsize=12, fontweight="bold")
@@ -73,9 +74,10 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     
     timestamp_0 = x[0]
     timestamp_1 = x[1]
+    
 
     #width = (time.mktime(timestamp_1.timetuple()) - time.mktime(timestamp_0.timetuple())) / 86400 *.8
-    width = (timestamp_1 - timestamp_0).total_seconds() / 86400 *.8
+    width = (timestamp_1 - timestamp_0).total_seconds() / 86400 * 0.8
        
     ax2 = ax1.twinx()
     ax2.bar(x, combined_df["count"].tolist(), width=width, color='gainsboro')
@@ -85,13 +87,14 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     ax1.patch.set_visible(False)
     
     ax1.set_ylim([0,max_value_y])
+    
 
     fig.tight_layout() 
     plt.figure(figsize=(20,14), dpi= 400)
     
     #max_value_y = 100
     
-
+    
 
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
@@ -248,7 +251,7 @@ def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words,
 #            "social fairness", "inequality", "inequalities",],
 #"Privacy & security" : ["privacy", "privacy concerns", "privacy preserving", "data privacy", 
 #             "privacy perservation", "cyber"],
-
+#
 #}
 
 
@@ -366,5 +369,7 @@ def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words,
 #print(df_with_topics)
 
 #df_with_topics = pd.read_pickle("./dummy.pkl")
+
+
 
 
