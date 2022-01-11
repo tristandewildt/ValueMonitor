@@ -31,10 +31,10 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     copy_df_with_topics = df_with_topics.copy()
     copy_dict_anchor_words = dict_anchor_words.copy()
     
-    df_with_topics_freq = copy_df_with_topics.set_index('[Date]').resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq = df_with_topics_freq.set_index('[Date]')
+    df_with_topics_freq = copy_df_with_topics.set_index('Date').resample(resampling).size().reset_index(name="count")
+    df_with_topics_freq = df_with_topics_freq.set_index('Date')
 
-    df_frequencies = copy_df_with_topics.set_index('[Date]')
+    df_frequencies = copy_df_with_topics.set_index('Date')
     df_frequencies = df_frequencies.resample(resampling).sum()
        
     list_topics = list(range(len(copy_dict_anchor_words)))
@@ -118,8 +118,8 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
     
     copy_df_with_topics.columns = list_columns
     
-    df_with_topics_freq_value_0 = copy_df_with_topics[[values_selected[0], '[Date]']].set_index('[Date]').resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq_value_0 = df_with_topics_freq_value_0.set_index('[Date]')
+    df_with_topics_freq_value_0 = copy_df_with_topics[[values_selected[0], 'Date']].set_index('Date').resample(resampling).size().reset_index(name="count")
+    df_with_topics_freq_value_0 = df_with_topics_freq_value_0.set_index('Date')
     
     df_with_topics_selected_topics = copy_df_with_topics[values_selected]
     list_counts = df_with_topics_selected_topics.sum(axis=1).tolist()
@@ -132,8 +132,8 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
             list_counts[counter] = 0
         counter += 1
        
-    df_with_topics_sum = copy_df_with_topics[["[Date]"]]
-    df_with_topics_sum = df_with_topics_sum.set_index('[Date]')
+    df_with_topics_sum = copy_df_with_topics[["Date"]]
+    df_with_topics_sum = df_with_topics_sum.set_index('Date')
     
     df_with_topics_sum['all_values_named'] = pd.Series(list_counts, index=df_with_topics_sum.index)
     
@@ -173,13 +173,13 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
 def inspect_words_over_time(df_with_topics, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
 
     df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[topic_to_evaluate] == 1] 
-    df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('[Date]')  
+    df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('Date')  
     
     df_with_topics_freq = df_with_topics_selected_topic.resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq = df_with_topics_freq.set_index('[Date]')
+    df_with_topics_freq = df_with_topics_freq.set_index('Date')
     
     for word in list_words:
-        df_with_topics_selected_topic[word] = df_with_topics_selected_topic["[Text_for_analysis]"].str.contains(pat = word).astype(int) #''' Check here '''
+        df_with_topics_selected_topic[word] = df_with_topics_selected_topic["Text"].str.contains(pat = word).astype(int) #''' Check here '''
     df_with_topics_selected_topic = df_with_topics_selected_topic[list_words] 
     df_with_topics_selected_topic = df_with_topics_selected_topic.resample(resampling).sum()
     

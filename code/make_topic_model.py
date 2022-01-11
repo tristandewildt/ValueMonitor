@@ -49,8 +49,8 @@ def vectorize(df):
         sublinear_tf=False
     )
 
-    vectorizer = vectorizer.fit(df['[Text_for_analysis]'])
-    tfidf = vectorizer.transform(df['[Text_for_analysis]'])
+    vectorizer = vectorizer.fit(df['Text'])
+    tfidf = vectorizer.transform(df['Text'])
     vocab = vectorizer.get_feature_names()
     vectorized_data = [vectorizer, tfidf, vocab]
     
@@ -153,7 +153,7 @@ def report_topics(model, dict_anchor_words, number_of_words_per_topic):
 def create_df_with_topics(df, model, vectorized_data, best_number_of_topics):
     vectorizer = vectorized_data[0]
     
-    tfidf = vectorizer.transform(df['[Text_for_analysis]']) 
+    tfidf = vectorizer.transform(df['Text']) 
     
     df_documents_topics = pd.DataFrame(
         model.transform(tfidf), 
@@ -173,7 +173,7 @@ def export_documents_related_to_one_topic(df_with_topics, dict_anchor_words, fil
     name, extension = os.path.splitext(file_name)
     
     df_selected = df_with_topics[df_with_topics[Topic_selected_number] == 1] 
-    df_selected = DataFrame(df_selected,columns=["[Text_for_analysis]", "[Date]"])
+    df_selected = DataFrame(df_selected,columns=["Text", "Date"])
 
     df_selected.to_csv(str(root) + "save/" + str(name) + "_topic_"+str(Topic_selected)+".csv", index = False)
     
@@ -194,7 +194,7 @@ def find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_t
     listToStr = ', '.join([str(elem) for elem in list_of_words])
     name_column_counts = "Number of documents found in each topic with keywords '" +str(listToStr)+"' which have not been assigned to topic "+str(topic_to_evaluate)+"."
 
-    df_selected = df_with_topics[df_with_topics["[Text_for_analysis]"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[df_selected[topic_to_evaluate_number] == 0]
     
     print(str(len(df_selected))+" documents found that contains words in the list and have not been attributed to the topic of interest.")
@@ -227,10 +227,10 @@ def find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_t
     
 def sample_documents(df_selected, random_number_documents_to_return, text_table):
 
-    df_selected_texts = pd.DataFrame(df_selected["[Text_for_analysis]"].sample(n = min(random_number_documents_to_return, len(df_selected))))
+    df_selected_texts = pd.DataFrame(df_selected["Text"].sample(n = min(random_number_documents_to_return, len(df_selected))))
     
-    df_selected_texts["[Text_for_analysis]"] = df_selected_texts["[Text_for_analysis]"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
-    df_selected_texts = df_selected_texts.rename(columns={"[Text_for_analysis]": text_table})
+    df_selected_texts["Text"] = df_selected_texts["Text"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
+    df_selected_texts = df_selected_texts.rename(columns={"Text": text_table})
 
     display(HTML(df_selected_texts.to_html(justify = "center")))
 
@@ -238,7 +238,7 @@ def print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["[Text_for_analysis]"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[(df_selected[topic_to_evaluate_number] == 0) & (df_selected[topic_in_which_some_keywords_are_found] == 1)]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])
@@ -259,7 +259,7 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["[Text_for_analysis]"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[df_selected[topic_to_evaluate_number] == 1]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])

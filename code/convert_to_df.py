@@ -183,6 +183,7 @@ def prepare_df(df, list_columns):
         text_cols = list_columns[0]
            
         df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        
         df=df.rename(columns = {list_columns[1][0]:'Date'})    
         
         df2 = df[['Text', 'Date']].copy()
@@ -193,6 +194,8 @@ def prepare_df(df, list_columns):
         df2['Text'] = df2['Text'].map(lambda x: nltk.word_tokenize(x))
         df2['Text'] = df2['Text'].map(lambda x: " ".join(x))
         df2['Text'] = df2['Text'].apply(filter_stopwords_verbs)
+        
+        df2['Date'] = df2['Date'].map(lambda x: dateutil.parser.parse(str(x)))
             
         print("STEP FINISHED")
         return df2
