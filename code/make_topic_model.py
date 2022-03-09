@@ -14,6 +14,7 @@ import _pickle as cPickle
 from pandas import DataFrame
 from sklearn.feature_extraction.text import TfidfVectorizer
 from corextopic import corextopic as ct
+from operator import itemgetter
 #from tabulate import tabulate
 from IPython.display import display, HTML
 
@@ -227,10 +228,10 @@ def find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_t
     
 def sample_documents(df_selected, random_number_documents_to_return, text_table):
 
-    df_selected_texts = pd.DataFrame(df_selected["Text"].sample(n = min(random_number_documents_to_return, len(df_selected))))
+    df_selected_texts = pd.DataFrame(df_selected["Original_text"].sample(n = min(random_number_documents_to_return, len(df_selected))))
     
-    df_selected_texts["Text"] = df_selected_texts["Text"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
-    df_selected_texts = df_selected_texts.rename(columns={"Text": text_table})
+    df_selected_texts["Original_text"] = df_selected_texts["Original_text"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
+    df_selected_texts = df_selected_texts.rename(columns={"Original_text": text_table})
 
     display(HTML(df_selected_texts.to_html(justify = "center")))
 
@@ -246,11 +247,25 @@ def print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_
     
     sample_documents(df_selected, random_number_documents_to_return, text_table)
     
-def print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, topic_to_evaluate, random_number_documents_to_return):
+def print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, topic_to_evaluate, random_number_documents_to_return, model, top_x_words_of_topic_to_show_in_text):
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
 
     df_selected = df_with_topics[df_with_topics[topic_to_evaluate_number] == 1]
+    
+    #print(enumerate(model.get_topics(n_words=top_x_words_of_topic_to_show_in_text))[0])
+    #for i, topic_ngrams in enumerate(model.get_topics(n_words=top_x_words_of_topic_to_show_in_text)):
+    #    if i == topic_to_evaluate_number:
+    #        topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
+    #        for y in topic_ngrams:
+    #            print(y)
+    #        list_words_topic = [a_tuple[0] for a_tuple in topic_ngrams]
+            
+    #print(topic_ngrams)
+    #print(type(topic_ngrams[0][0]))
+    #print(list_words_topic)
+    
+
     text_table = "Random " + str(random_number_documents_to_return) + " documents in topic " + str(topic_to_evaluate) + "."
     
     sample_documents(df_selected, random_number_documents_to_return, text_table)
@@ -276,21 +291,24 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
 #filelocation = 'C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/'
 #file_name = "scopus_nucl_energy.csv"
 
-#with open(str(filelocation) + 'model_and_vectorized_data','rb') as fp:
-#    model_and_vectorized_data = pickle.load(fp)
+filelocation = "F:\Google Drive\ValueMonitor\save/"
+df_with_topics_name = "scopus_1"
+
+with open(str(filelocation) + 'model_and_vectorized_data','rb') as fp:
+    model_and_vectorized_data = pickle.load(fp)
     
 #best_number_of_topics = 50
     
-#dict_anchor_words = {
-#'Safety' : ["safety", "accident"],
-#'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
-#            "terrorism", "theft"],
-#'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
-#'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
-#'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
-#             "intergenerational relations", "justice", "intergenerational",
-#             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
-#}
+dict_anchor_words = {
+'Safety' : ["safety", "accident"],
+'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
+            "terrorism", "theft"],
+'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
+'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
+'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
+             "intergenerational relations", "justice", "intergenerational",
+             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
+}
 
 #export_topic_model(model_and_vectorized_data, dict_anchor_words, best_number_of_topics, file_name)
 
@@ -303,18 +321,17 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
 #topic_in_which_some_keywords_are_found = 36
 
 #random_number_documents_to_return = 5
+#top_x_words_of_topic_to_show_in_text = 10
 
 
-
-#df_with_topics = pd.read_pickle(str(filelocation + name) + '_df_with_topics')
+#df_with_topics = pd.read_pickle(str(filelocation + df_with_topics_name) + '_df_with_topics')
 #df_with_topics = pd.read_pickle('F:/Google Drive/Topic_modelling_analysis/save/aylien_covid_news_data_GB_df_with_topics')
-
 
 #print_random_x_articles (df_with_topics, topic_to_evaluate, random_number_documents_to_return)
 
 #list_of_words = ["safety", "safely"]
 
-#print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, topic_to_evaluate, random_number_documents_to_return)
+#print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, topic_to_evaluate, random_number_documents_to_return, model_and_vectorized_data[0], top_x_words_of_topic_to_show_in_text)
 
 
 
