@@ -175,6 +175,7 @@ def prepare_df(df, list_columns):
     
     
     if all(item in list(df) for item in list_columns[0]) == False or list_columns[1][0] not in list(df):
+
         raise ValueError("Error: check that the columns you specified are written correctly.")
         
     else:
@@ -183,7 +184,7 @@ def prepare_df(df, list_columns):
         text_cols = list_columns[0]
            
         df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
-        df['Original_text'] = df['Text']
+        df['Original_text'] = df[text_cols].apply(lambda row: '. '.join(row.values.astype(str)), axis=1)
         
         df=df.rename(columns = {list_columns[1][0]:'Date'})    
         
@@ -230,7 +231,6 @@ def show_columns(corpus):
 
 #df = import_file_and_show_columns(corpus, file_format)
 #df = prepare_df(df, list_columns)
-
 #print(df['Original_text'])
 
 
