@@ -148,7 +148,7 @@ def import_file_and_show_columns(corpus, file_format):
                 df = pd.read_pickle(corpus)
         
             print(df.info())
-            print("STEP FINISHED")
+            print("FILE IMPORTED")
             return df  
         except:
             raise ValueError("Error: check that the variable 'file_format' matches the file that you provided as input.")
@@ -183,10 +183,11 @@ def prepare_df(df, list_columns):
         text_cols = list_columns[0]
            
         df['Text'] = df[text_cols].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+        df['Original_text'] = df['Text']
         
         df=df.rename(columns = {list_columns[1][0]:'Date'})    
         
-        df2 = df[['Text', 'Date']].copy()
+        df2 = df[['Text', 'Original_text', 'Date']].copy()
         
         df2['Text'] = df2['Text'].str.lower()
         df2['Text'] = df2['Text'].map(lambda x: re.sub(r'\W+', ' ', str(x)))
@@ -197,7 +198,7 @@ def prepare_df(df, list_columns):
         
         df2['Date'] = df2['Date'].map(lambda x: dateutil.parser.parse(str(x)))
             
-        print("STEP FINISHED")
+        print("FILE CONVERTED TO PANDAS DATAFRAME")
         return df2
         #except ValueError
             #raise ValueError("Error: check that the columns specified are written correctly.")
@@ -220,7 +221,7 @@ def show_columns(corpus):
     print(df.info())
 
 
-#corpus = open("D:\Github\ValueMonitor\data/scopus_nucl_energy.csv", "rb")
+#corpus = open("D:\Github\ValueMonitor\data/scopus_1.csv", "rb")
 #file_format = "csv"
 
 #columns_to_select_as_text = ["Source title", "Abstract", "Author Keywords"]
@@ -230,6 +231,6 @@ def show_columns(corpus):
 #df = import_file_and_show_columns(corpus, file_format)
 #df = prepare_df(df, list_columns)
 
-#print(df.head())
+#print(df['Original_text'])
 
 
