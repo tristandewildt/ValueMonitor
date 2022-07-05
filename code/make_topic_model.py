@@ -1,6 +1,3 @@
-# Here it should first check what type of file it is. 
-#If it is not one of the format, it should return that the format is wrong. 
-#import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,8 +12,8 @@ from pandas import DataFrame
 from sklearn.feature_extraction.text import TfidfVectorizer
 from corextopic import corextopic as ct
 from operator import itemgetter
-#from tabulate import tabulate
 from IPython.display import display, HTML
+from simple_colors import *
 
 
 ''' First select a number of documents from the data set to create the topic model more rapidly'''
@@ -50,8 +47,8 @@ def vectorize(df):
         sublinear_tf=False
     )
 
-    vectorizer = vectorizer.fit(df['Text'])
-    tfidf = vectorizer.transform(df['Text'])
+    vectorizer = vectorizer.fit(df['text_tagged'])
+    tfidf = vectorizer.transform(df['text_tagged'])
     vocab = vectorizer.get_feature_names()
     vectorized_data = [vectorizer, tfidf, vocab]
     
@@ -61,7 +58,6 @@ def make_topic_model(df, number_of_topics, anchors):
     
     vectorized_data = vectorize(df)
     
-#    vectorizer = vectorized_data[0]
     tfidf = vectorized_data[1]
     vocab = vectorized_data[2]
 
@@ -140,21 +136,30 @@ def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analy
 def report_topics(model, dict_anchor_words, number_of_words_per_topic):
         
     list_values = []
+    words_values = {}
     for key, value in dict_anchor_words.items(): 
         list_values.append(key)
+        
+    index_values = []
+    for i in list_values:
+        index_values.append(list_values.index(i))
 
     for i, topic_ngrams in enumerate(model.get_topics(n_words=number_of_words_per_topic)):
-        topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
+        if i in index_values:
+            topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
+            words_values[list_values[i]] = topic_ngrams
         
-        if len(list_values) > i:
-            print("Topic #{} ({}): {}".format(i, list_values[i], ", ".join(topic_ngrams)))
-        else:
-            print("Topic #{}: {}".format(i, ", ".join(topic_ngrams)))
+            if len(list_values) > i:
+                print("Topic #{} ({}): {}".format(i, list_values[i], ", ".join(topic_ngrams)))
+            else:
+                print("Topic #{}: {}".format(i, ", ".join(topic_ngrams)))
+            
+    return words_values
 
 def create_df_with_topics(df, model, vectorized_data, best_number_of_topics):
     vectorizer = vectorized_data[0]
     
-    tfidf = vectorizer.transform(df['Text']) 
+    tfidf = vectorizer.transform(df['text_tagged']) 
     
     df_documents_topics = pd.DataFrame(
         model.transform(tfidf), 
@@ -174,7 +179,7 @@ def export_documents_related_to_one_topic(df_with_topics, dict_anchor_words, fil
     name, extension = os.path.splitext(file_name)
     
     df_selected = df_with_topics[df_with_topics[Topic_selected_number] == 1] 
-    df_selected = DataFrame(df_selected,columns=["Text", "Date"])
+    df_selected = DataFrame(df_selected,columns=["text", "date"])
 
     df_selected.to_csv(str(root) + "save/" + str(name) + "_topic_"+str(Topic_selected)+".csv", index = False)
     
@@ -195,7 +200,7 @@ def find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_t
     listToStr = ', '.join([str(elem) for elem in list_of_words])
     name_column_counts = "Number of documents found in each topic with keywords '" +str(listToStr)+"' which have not been assigned to topic "+str(topic_to_evaluate)+"."
 
-    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["text"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[df_selected[topic_to_evaluate_number] == 0]
     
     print(str(len(df_selected))+" documents found that contains words in the list and have not been attributed to the topic of interest.")
@@ -228,10 +233,10 @@ def find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_t
     
 def sample_documents(df_selected, random_number_documents_to_return, text_table):
 
-    df_selected_texts = pd.DataFrame(df_selected["Original_text"].sample(n = min(random_number_documents_to_return, len(df_selected))))
+    df_selected_texts = pd.DataFrame(df_selected["text"].sample(n = min(random_number_documents_to_return, len(df_selected))))
     
-    df_selected_texts["Original_text"] = df_selected_texts["Original_text"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
-    df_selected_texts = df_selected_texts.rename(columns={"Original_text": text_table})
+    df_selected_texts["text"] = df_selected_texts["text"].apply(lambda x: ''.join([" " if ord(i) < 32 or ord(i) > 126 else i for i in x]))
+    df_selected_texts = df_selected_texts.rename(columns={"text": text_table})
 
     display(HTML(df_selected_texts.to_html(justify = "center")))
 
@@ -239,7 +244,7 @@ def print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["text_tagged"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[(df_selected[topic_to_evaluate_number] == 0) & (df_selected[topic_in_which_some_keywords_are_found] == 1)]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])
@@ -253,18 +258,6 @@ def print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, t
 
     df_selected = df_with_topics[df_with_topics[topic_to_evaluate_number] == 1]
     
-    #print(enumerate(model.get_topics(n_words=top_x_words_of_topic_to_show_in_text))[0])
-    #for i, topic_ngrams in enumerate(model.get_topics(n_words=top_x_words_of_topic_to_show_in_text)):
-    #    if i == topic_to_evaluate_number:
-    #        topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
-    #        for y in topic_ngrams:
-    #            print(y)
-    #        list_words_topic = [a_tuple[0] for a_tuple in topic_ngrams]
-            
-    #print(topic_ngrams)
-    #print(type(topic_ngrams[0][0]))
-    #print(list_words_topic)
-    
 
     text_table = "Random " + str(random_number_documents_to_return) + " documents in topic " + str(topic_to_evaluate) + "."
     
@@ -274,7 +267,7 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["Text"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["text"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[df_selected[topic_to_evaluate_number] == 1]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])
@@ -282,119 +275,61 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
     
     sample_documents(df_selected, random_number_documents_to_return, text_table)
     
-
-   
+def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selected_value, size_sample, show_extracts, show_full_text):
     
-''' Remove the code hereunder later '''
+    words_values = topics
 
-#filelocation = 'F:/Google Drive/Topic_modelling_analysis/save/'
-#filelocation = 'C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/'
-#file_name = "scopus_nucl_energy.csv"
-
-filelocation = "F:\Google Drive\ValueMonitor\save/"
-df_with_topics_name = "scopus_1"
-
-with open(str(filelocation) + 'model_and_vectorized_data','rb') as fp:
-    model_and_vectorized_data = pickle.load(fp)
+    window = 10
     
-#best_number_of_topics = 50
+    list_values = list(dict_anchor_words.keys())
     
-dict_anchor_words = {
-'Safety' : ["safety", "accident"],
-'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
-            "terrorism", "theft"],
-'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
-'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
-'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
-             "intergenerational relations", "justice", "intergenerational",
-             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
-}
-
-#export_topic_model(model_and_vectorized_data, dict_anchor_words, best_number_of_topics, file_name)
-
-
-
-
-
-#topic_to_evaluate = "Safety"
-
-#topic_in_which_some_keywords_are_found = 36
-
-#random_number_documents_to_return = 5
-#top_x_words_of_topic_to_show_in_text = 10
-
-
-#df_with_topics = pd.read_pickle(str(filelocation + df_with_topics_name) + '_df_with_topics')
-#df_with_topics = pd.read_pickle('F:/Google Drive/Topic_modelling_analysis/save/aylien_covid_news_data_GB_df_with_topics')
-
-#print_random_x_articles (df_with_topics, topic_to_evaluate, random_number_documents_to_return)
-
-#list_of_words = ["safety", "safely"]
-
-#print_sample_documents_related_to_topic(df_with_topics, dict_anchor_words, topic_to_evaluate, random_number_documents_to_return, model_and_vectorized_data[0], top_x_words_of_topic_to_show_in_text)
-
-
-
-
+    selected_value_int = list_values.index(selected_value)
+    
+    df_with_topics_to_analyse = df_with_topics.loc[df_with_topics[selected_value_int] > 0]
+    
+    
+    sampled_df = df_with_topics_to_analyse.sample(n = min(size_sample, len(df_with_topics_to_analyse)))
+    print("Keywords related to "+str(selected_value)+" found in text:"+str(words_values[selected_value]))
+    print("")
+    
+    for index, row in sampled_df.iterrows():
+        print('\033[1m' + 'Article '+str(index) + '\033[0m')
+        print("Title: "+str(row['title']))
+        print("Dataset: "+str(row['dataset']))
         
+        text_combined_tagged = row['text_tagged']
+        text_combined_not_tagged = row['text']
+        
+        tokens = text_combined_not_tagged.split() #### check here with spaces
 
-#docs = print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_topics, list_of_words, topic_to_evaluate, topic_in_which_some_keywords_are_found, random_number_documents_to_return)
-#print(docs)
+        if show_full_text == True:
+            for word in words_values[selected_value]:
+                text_combined_not_tagged = re.sub(word, '\033[1m' + '[' + str(red(word)) + ']' + '\033[0m', text_combined_not_tagged, flags=re.IGNORECASE)
+            print(text_combined_not_tagged)
+    
+        if show_extracts == True:
+            print("Values:")
+            print("")
+            for index in range(len(tokens)):
+                if tokens[index].lower() in words_values[selected_value]:
+                    start = max(0, index-window)
+                    finish = min(len(tokens), index+window+1)
+                    lhs = " ".join( tokens[start:index] )
+                    rhs = " ".join( tokens[index+1:finish] )
+                    #conc = "%s [%s] %s" % (lhs, tokens[index], rhs)
+                    conc = "%s [%s] %s" % (" - "+str(lhs), '\033[1m' + str(red(tokens[index])) + '\033[0m', rhs)
+                    print(conc)
+                    print("")
+        print("")
+    
+def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
+    
+    imported_data = combined_STOA_technologies_saved_topic_model
+    df_with_topics = create_df_with_topics(df, imported_data[0][0], imported_data[0][1], imported_data[2])
+    dict_anchor_words = imported_data[1]
+    
+    topics = imported_data [3]
 
-#print_sample_documents_related_to_topic_with_keywords(df_with_topics, list_of_words, topic_to_evaluate, random_number_documents_to_return)
-
-
-#docs = find_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_topics, model_and_vectorized_data, dict_anchor_words, list_of_words, topic_to_evaluate)
-#print(docs)
-
-#filelocation = 'F:/Google Drive/Topic_modelling_analysis/save/'
-#filelocation = 'C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/'
-
-#file_name = "scopus_nucl_energy.csv"
-#name, extension = os.path.splitext(file_name)
-#file_name = "Covid_data.txt"
-
-#Topic_selected = 0
-#df_with_topics = pd.read_pickle(str(filelocation + name) + '_df_with_topics')
-
-#export_documents_related_to_one_topic(df_with_topics, file_name, Topic_selected)
-
-
-#name, extension = os.path.splitext(file_name)
-#max_number_of_documents = 20
-#df = pd.read_pickle(filelocation + name)
-#print(df.info())
-
-#min_number_of_topics = 10
-#max_number_of_topics = 50
-
-#best_number_of_topics = find_best_number_of_topics(df, max_number_of_documents, min_number_of_topics, max_number_of_topics)
-#print(best_number_of_topics)
-
-#df_reduced = reduce_df(df, max_number_of_documents)
-#make_topic_model(df_reduced)
-
-#number_of_topics = 50
-#number_of_documents_in_analysis = 100
-
-#dict_anchor_words = {
-#'Value 1' : ["safety", "accident"],
-#'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
-#            "terrorism", "theft"],
-#'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
-#'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
-#'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
-#             "intergenerational relations", "justice", "intergenerational",
-#             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
-#}
-
-#list_rejected_words = ["fossil", "coal", "oil", "natural gas", "term", "long term", "short term", "term energy", 
-#                       "st century", "st", "century", "decision making", "decision", "making"]
-
-#model_and_vectorized_data = make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_rejected_words)
-#outcomes = report_topics(model_and_vectorized_data[0], dict_anchor_words)
-#df_with_topics = create_df_with_topics(df, model_and_vectorized_data[0], model_and_vectorized_data[1], number_of_topics)
-#print(df_with_topics)
-
-#df_with_topics.info()
-
+    results_import = [df_with_topics, topics, dict_anchor_words]
+    return(results_import)
+    

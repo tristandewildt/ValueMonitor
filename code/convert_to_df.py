@@ -7,6 +7,7 @@ import nltk
 nltk.download('punkt')
 import dateutil.parser
 import rispy
+import pickle
 from RISparser import readris
 from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
@@ -100,7 +101,9 @@ def convert_to_df(file_name):
         df = convert_from_txt_to_df(datafile, extension)
         
     if extension == '':
-        df = pd.read_pickle(datafile)
+        #df = pd.read_pickle(datafile)
+        with open(datafile) as fin:
+            df =  pickle.load(fin)
         df["[Text_for_analysis]"] = df["Title"] + ' ' +  df["Body"]
         df = df[['Date', '[Text_for_analysis]', 'Source', 'Country']]
         df = df.rename(columns={'Date': '[Date]'})

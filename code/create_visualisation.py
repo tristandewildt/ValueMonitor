@@ -14,7 +14,158 @@ from corextopic import corextopic as ct
 from datetime import datetime
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
+from matplotlib.ticker import FormatStrFormatter
 
+
+def values_in_different_datasets(df_with_topics, dict_anchor_words):
+    
+    list_values = list(dict_anchor_words.keys())
+    list_values_int = []
+    for i in list_values:
+        list_values_int.append(list(dict_anchor_words.keys()).index(i))
+        
+    list_datasets = df_with_topics['dataset'].unique().tolist()
+        
+    series_perc = {}
+    
+    for dataset in list_datasets:
+        df_with_topics_dataset = df_with_topics[df_with_topics['dataset'] == dataset]
+        df_with_topics_sum_dataset = df_with_topics_dataset[[c for c in df_with_topics_dataset.columns if c in list_values_int]]
+        df_with_topics_sum_dataset.columns = list_values
+        df_sum = df_with_topics_sum_dataset.sum(numeric_only=True)
+        series_perc[dataset] = df_sum.apply(lambda x: x / len(df_with_topics_sum_dataset) * 100)
+    
+    #print(series_perc)
+    
+    df_perc = {k:v.to_frame() for k, v in series_perc.items()}
+    df_perc_all = df_perc[list_datasets[0]]
+
+    counter = 0
+    for dataset in list_datasets:
+        if counter > 0:
+            df_perc_all = pd.concat([df_perc_all, df_perc[dataset].reindex(df_perc_all.index)], axis=1)
+        counter = counter + 1
+    
+    df_perc_all.columns = list_datasets
+    
+    colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99', '#b15928']
+    
+    c = {}
+    counter = 0
+    for dataset in list_datasets:
+        c[dataset] = colors[counter]
+        counter = counter + 1
+        if counter >= len(colors):
+            counter = 0
+
+    plt.rcParams.update({'font.size': 15})
+    ax = df_perc_all.plot(kind='bar', figsize=(15,10), color=c, width = 0.75)
+    ax.set_ylabel("%")
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    plt.title("Values in different datasets")
+    
+    for dataset in list_datasets:
+        print("Number articles in "+str(dataset)+": "+str(len(df_with_topics[df_with_topics['dataset'] == dataset])))
+    
+def value_in_different_datasets(df_with_topics, dict_anchor_words, selected_value):
+    
+    list_values = list(dict_anchor_words.keys())
+    list_values_int = []
+    for i in list_values:
+        list_values_int.append(list(dict_anchor_words.keys()).index(i))
+    
+    value_list = [selected_value]
+    value_int_list = [list_values_int[list_values.index(selected_value)]]
+    
+    list_datasets = df_with_topics['dataset'].unique().tolist()
+
+    
+    series_perc = {}
+    
+    for dataset in list_datasets:
+        df_with_topics_dataset = df_with_topics[df_with_topics['dataset'] == dataset]
+        df_with_topics_sum_dataset = df_with_topics_dataset[[c for c in df_with_topics_dataset.columns if c in value_int_list]]
+        df_with_topics_sum_dataset.columns = value_list
+        df_sum = df_with_topics_sum_dataset.sum(numeric_only=True)
+        series_perc[dataset] = df_sum.apply(lambda x: x / len(df_with_topics_sum_dataset) * 100)
+    
+    #print(series_perc)
+    
+    df_perc = {k:v.to_frame() for k, v in series_perc.items()}
+    df_perc_all = df_perc[list_datasets[0]]
+
+    counter = 0
+    for dataset in list_datasets:
+        if counter > 0:
+            df_perc_all = pd.concat([df_perc_all, df_perc[dataset].reindex(df_perc_all.index)], axis=1)
+        counter = counter + 1
+    
+    df_perc_all.columns = list_datasets
+    
+    colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99', '#b15928']
+    
+    c = {}
+    counter = 0
+    for dataset in list_datasets:
+        c[dataset] = colors[counter]
+        counter = counter + 1
+        if counter >= len(colors):
+            counter = 0
+
+    plt.rcParams.update({'font.size': 15})
+    ax = df_perc_all.plot(kind='bar', figsize=(15,10), color=c, width = 0.75)
+    ax.set_ylabel("%")
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    plt.title("Value "+str(selected_value)+" in different datasets")
+    
+    for dataset in list_datasets:
+        print("Number articles in "+str(dataset)+": "+str(len(df_with_topics[(df_with_topics['dataset'] == dataset) & (df_with_topics[value_int_list[0]] == 1)])))
+
+
+def values_in_different_groups(df_with_topics, dict_anchor_words, selected_dataset):
+         
+    list_datasets = df_with_topics['dataset'].unique().tolist()
+
+    df_with_topics_field = df_with_topics.loc[df_with_topics['dataset'] == selected_dataset]
+        
+
+    list_datasets = df_with_topics['dataset'].unique().tolist()
+
+        
+    df_sum_dataset_short = df_with_topics_field.sum(numeric_only=True)
+               
+
+        
+    series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_field) * 100)
+    series_perc_dataset_short = series_perc_dataset_short[:len(dict_anchor_words)]
+
+    counter = 0
+    for value, keywords in dict_anchor_words.items():
+        series_perc_dataset_short = series_perc_dataset_short.rename({counter: value})
+        counter = counter + 1
+        
+    series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending = False)
+        
+    series_perc_dataset_short = series_perc_dataset_short.rename(selected_dataset)
+    df_perc_dataset_short = series_perc_dataset_short.to_frame()
+
+        
+    colors = ['#a6cee3', '#1f78b4', '#b2df8a', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00', '#cab2d6', '#6a3d9a', '#ffff99', '#b15928']
+    
+    c = {}
+    counter = 0
+    for dataset in list_datasets:
+        c[dataset] = colors[counter]
+        counter = counter + 1
+        if counter >= len(colors):
+            counter = 0
+        
+    plt.rcParams.update({'font.size': 16})
+    ax = df_perc_dataset_short.plot(kind='barh', figsize=(10,10),
+                                        color=c[selected_dataset])
+    ax.set_xlabel("%")
+    plt.title("Distribution of values")
+    plt.gca().invert_yaxis()
 
 def topic_int_or_string(Topic_selected, dict_anchor_words):
     
@@ -26,15 +177,45 @@ def topic_int_or_string(Topic_selected, dict_anchor_words):
         
     return Topic_selected_number
 
+def create_vis_frequency_values(df_with_topics, dict_anchor_words):
+    
+    # list values and list values int
+    name_values = list(dict_anchor_words.keys())
+    list_values_int = []
+    for i in name_values:
+        integ = topic_int_or_string(i, dict_anchor_words)
+        list_values_int.append(integ)
+
+   
+    df_with_topics_sum_dataset_short = df_with_topics[[c for c in df_with_topics.columns if c in list_values_int]]
+    df_with_topics_sum_dataset_short.columns = name_values
+    df_sum_dataset_short = df_with_topics_sum_dataset_short.sum(numeric_only=True)
+    series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_sum_dataset_short) * 100)
+    series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
+    
+    df_perc_dataset_short = series_perc_dataset_short.to_frame()
+    #df_perc_dataset_short.columns = ["Percentage of documents mentioning each value"]
+    
+
+    
+#    c = {"NEWS": "#1f77b4", "ETHICS": "#ff7f0e", "TECH": "#2ca02c", "LEGAL": "#d62728"}
+    
+    plt.rcParams.update({'font.size': 16})
+    ax = df_perc_dataset_short.plot(kind='bar', figsize=(6,6),legend=False)#,
+#                                    color=c)
+    ax.set_ylabel("%")
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    #plt.show()
+
 def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
     
     copy_df_with_topics = df_with_topics.copy()
     copy_dict_anchor_words = dict_anchor_words.copy()
     
-    df_with_topics_freq = copy_df_with_topics.set_index('Date').resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq = df_with_topics_freq.set_index('Date')
+    df_with_topics_freq = copy_df_with_topics.set_index('date').resample(resampling).size().reset_index(name="count")
+    df_with_topics_freq = df_with_topics_freq.set_index('date')
 
-    df_frequencies = copy_df_with_topics.set_index('Date')
+    df_frequencies = copy_df_with_topics.set_index('date')
     df_frequencies = df_frequencies.resample(resampling).sum()
        
     list_topics = list(range(len(copy_dict_anchor_words)))
@@ -118,8 +299,8 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
     
     copy_df_with_topics.columns = list_columns
     
-    df_with_topics_freq_value_0 = copy_df_with_topics[[values_selected[0], 'Date']].set_index('Date').resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq_value_0 = df_with_topics_freq_value_0.set_index('Date')
+    df_with_topics_freq_value_0 = copy_df_with_topics[[values_selected[0], 'date']].set_index('date').resample(resampling).size().reset_index(name="count")
+    df_with_topics_freq_value_0 = df_with_topics_freq_value_0.set_index('date')
     
     df_with_topics_selected_topics = copy_df_with_topics[values_selected]
     list_counts = df_with_topics_selected_topics.sum(axis=1).tolist()
@@ -132,8 +313,8 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
             list_counts[counter] = 0
         counter += 1
        
-    df_with_topics_sum = copy_df_with_topics[["Date"]]
-    df_with_topics_sum = df_with_topics_sum.set_index('Date')
+    df_with_topics_sum = copy_df_with_topics[["date"]]
+    df_with_topics_sum = df_with_topics_sum.set_index('date')
     
     df_with_topics_sum['all_values_named'] = pd.Series(list_counts, index=df_with_topics_sum.index)
     
@@ -173,13 +354,13 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
 def inspect_words_over_time(df_with_topics, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
 
     df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[topic_to_evaluate] == 1] 
-    df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('Date')  
+    df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('date')  
     
     df_with_topics_freq = df_with_topics_selected_topic.resample(resampling).size().reset_index(name="count")
-    df_with_topics_freq = df_with_topics_freq.set_index('Date')
+    df_with_topics_freq = df_with_topics_freq.set_index('date')
     
     for word in list_words:
-        df_with_topics_selected_topic[word] = df_with_topics_selected_topic["Text"].str.contains(pat = word).astype(int) #''' Check here '''
+        df_with_topics_selected_topic[word] = df_with_topics_selected_topic["text"].str.contains(pat = word).astype(int) #''' Check here '''
     df_with_topics_selected_topic = df_with_topics_selected_topic[list_words] 
     df_with_topics_selected_topic = df_with_topics_selected_topic.resample(resampling).sum()
     
@@ -218,157 +399,6 @@ def inspect_words_over_time_based_on_most_frequent_words(df_with_topics, dict_an
 def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     inspect_words_over_time(df_with_topics, topic_to_evaluate_number, list_words, resampling, smoothing, max_value_y)
-
-''' Remove the code hereunder later '''
-     
-    
-#filelocation = 'F:/Google Drive/Topic_modelling_analysis/save/'
-#file_name = "scopus_nucl_energy.csv"
-#name, extension = os.path.splitext(file_name)
-
-#df_with_topics = pd.read_pickle(str(filelocation + name) + '_df_with_topics')
-
-#df_with_topics = pd.read_pickle('F:/Google Drive/Topic_modelling_analysis/save/aylien_covid_news_data_GB_df_with_topics')
-#df_with_topics = pd.read_pickle('C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/scopus_nucl_energy_df_with_topics')
-#df_with_topics = pd.read_pickle('C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/aylien_covid_news_data_all_df_with_topics')
-
-
-
-
-#df_with_topics =  pd.read_pickle("../save/df_with_topics")
-
-
-#resampling = "Y"
-
-#dict_anchor_words = {
-#"Sustainability" : ["sustainability", "sustainable", "renewable", 'durability', 'durable'],        
-#"Economic viability" : ["economic viability", "economic", "economic potential", "costs", "cost effective", "cost"],
-#"Affordability" : ["affordability", "affordable", "energy security", "low cost", "income", "poor", 
-#                   "poverty", "low income", "accessibility"],
-#"Availability" : ["availability", "reliability", "reliable", "security of supply"],
-#"Safety & Health" : ["safety", "health", "accident", "accidents"],
-#"Justice" : ["justice", "fairness", "social equity", "injustice", "injustices", "equity",
-#            "social fairness", "inequality", "inequalities",],
-#"Privacy & security" : ["privacy", "privacy concerns", "privacy preserving", "data privacy", 
-#             "privacy perservation", "cyber"],
-#
-#}
-
-
-#values_selected = ['Health & Safety', 'Privacy']
-
-
-#coexistence_values(df_with_topics, dict_anchor_words, resampling, values_selected)
-
-#values_to_include_in_visualisation = []
-#smoothing = 1
-#max_value_y = 60
-
-#print(df_with_topics)
-
-#df_with_topics = df_with_topics[df_with_topics['[Date]'] >= dateutil.parser.parse(str(1980))]
-
-#create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y)    
-
-
-
-
-
-#filelocation = 'F:/Google Drive/Topic_modelling_analysis/save/'
-#filelocation = 'C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/'
-#file_name = "scopus_nucl_energy.csv"
-#name, extension = os.path.splitext(file_name)
-#df_with_topics = pd.read_pickle(str(filelocation + name) + '_df_with_topics')
-
-#import pickle
-#with open(str(filelocation)+"model_"+str(name),'rb') as fp:
-#    model_and_vectorized_data = pickle.load(fp)
-
-    
-#imported_data = pickle.load(open( "C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/aylien_covid_news_data_all_saved_topic_model", 'rb'))
-
-#resampling = 'D'
-
-#topic_to_evaluate = 'Privacy'
-#number_of_words = 10
-
-#list_words = ["peace", "safety", "sustainability", "the safety"]
-
-#print(model_and_vectorized_data)
-#inspect_words_over_time_based_on_most_frequent_words(df_with_topics, imported_data[1], imported_data[0], topic_to_evaluate, number_of_words, resampling)
-
-#inspect_words_over_time_based_on_most_frequent_words(df_with_topics, model_and_vectorized_data, topic_to_evaluate, number_of_words, resampling)
-
-
-
-
-#dict_anchor_words = {
-#'Value 1' : ["safety", "accident"],
-#'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
-#            "terrorism", "theft"],
-#'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
-#'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
-#'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
-#             "intergenerational relations", "justice", "intergenerational",
-#             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
-#}
-
-
-#create_vis_values_over_time(df_with_topics, dict_anchor_words)
-
-
-
-
-
-
-
-
-
-
-
-
-#filelocation = 'F:/Google Drive/Topic_modelling_analysis/save/'
-#filelocation = 'C:/Users/tewdewildt/Google Drive/Topic_modelling_analysis/save/'
-#file_name = "scopus_nucl_energy.csv"
-#file_name = "Covid_data.txt"
-
-#name, extension = os.path.splitext(file_name)
-#max_number_of_documents = 100
-#df = pd.read_pickle(filelocation + name)
-#print(df.info())
-
-#min_number_of_topics = 50
-#max_number_of_topics = 250
-
-#best_number_of_topics = find_best_number_of_topics(df, max_number_of_documents, min_number_of_topics, max_number_of_topics)
-#print(best_number_of_topics)
-
-#df_reduced = reduce_df(df, max_number_of_documents)
-#make_topic_model(df_reduced)
-
-#number_of_topics = 50
-#number_of_documents_in_analysis = 100
-
-#dict_anchor_words = {
-#'Value 1' : ["safety", "accident"],
-#'Value 2' : ["security", "secure", "malicious", "proliferation", "cybersecurity", "cyber", "sabotage", "antisabotage",
-#            "terrorism", "theft"],
-#'Value 3' : ['sustainability', 'sustainable', 'renewable', 'durability', 'durable'],
-#'Value 4' : ["economic viability", "economic", "economic potential", "costs", "cost effective"],
-#'Value 5' : ["intergenerational justice", "intergenerational equity", "intergenerational ethics", "intergenerational equality", 
-#             "intergenerational relations", "justice", "intergenerational",
-#             "future generations", "present generations", "past generations", "waste management", "depleting", "nonrenewable"],
-#}
-
-#list_rejected_words = ["fossil", "coal", "oil", "natural gas", "term", "long term", "short term", "term energy", 
-#                       "st century", "st", "century", "decision making", "decision", "making"]
-
-#model_and_vectorized_data = make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_rejected_words)
-#outcomes = report_topics(model_and_vectorized_data[0], dict_anchor_words)
-#df_with_topics = create_df_with_topics(df, model_and_vectorized_data[0], model_and_vectorized_data[1], number_of_topics)
-#print(df_with_topics)
-
-#df_with_topics = pd.read_pickle("./dummy.pkl")
 
 
 
