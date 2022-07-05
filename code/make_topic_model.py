@@ -304,11 +304,11 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
     
     sample_documents(df_selected, random_number_documents_to_return, text_table)
     
-def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selected_value, size_sample, show_extracts, show_full_text):
+def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selected_value, size_sample, window, show_extracts, show_full_text):
     
     words_values = topics
 
-    window = 10
+    #window = 10
     
     list_values = list(dict_anchor_words.keys())
     
