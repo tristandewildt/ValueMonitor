@@ -20,6 +20,7 @@ tagger=PerceptronTagger()
 
 
 def filter_stopwords_verbs(x, tags_to_select):
+    
     pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
     remaining_text = [s for s in pos_tagged_tokens if any(ext in s[1] for ext in tags_to_select)]
     remaining_text_untolken = ' '.join([word for word, pos in remaining_text])
@@ -40,6 +41,7 @@ def clean_df(df, columns_to_select_as_text, column_as_date, other_columns_to_kee
     df2["text"] = df2["text"].map(lambda x: " ".join(x))
 
     if wordtagging == True:      
+        nltk.download('averaged_perceptron_tagger')
         df2["text"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
 
     return df2
