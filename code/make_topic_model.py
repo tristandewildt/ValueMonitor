@@ -41,7 +41,6 @@ def clean_df(df, columns_to_select_as_text, column_as_date, other_columns_to_kee
     df2["text"] = df2["text"].map(lambda x: " ".join(x))
 
     if wordtagging == True:      
-        nltk.download('averaged_perceptron_tagger')
         df2["text"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
 
     return df2
