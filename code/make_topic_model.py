@@ -7,6 +7,7 @@ import unicodedata
 import re
 import dateutil.parser
 import _pickle as cPickle
+import nltk
 
 from pandas import DataFrame
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -14,9 +15,34 @@ from corextopic import corextopic as ct
 from operator import itemgetter
 from IPython.display import display, HTML
 from simple_colors import *
+from nltk.tag.perceptron import PerceptronTagger
+tagger=PerceptronTagger()
 
 
-''' First select a number of documents from the data set to create the topic model more rapidly'''
+def filter_stopwords_verbs(x, tags_to_select):
+    pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
+    remaining_text = [s for s in pos_tagged_tokens if any(ext in s[1] for ext in tags_to_select)]
+    remaining_text_untolken = ' '.join([word for word, pos in remaining_text])
+    return remaining_text_untolken
+
+
+def clean_df(df, columns_to_select_as_text, column_as_date, other_columns_to_keep, wordtagging, tags_to_select):
+    
+    df["text"] = df[columns_to_select_as_text].apply(lambda row: ' '.join(row.values.astype(str)), axis=1)
+    df["date"] = df[column_as_date[0]].map(lambda x: dateutil.parser.parse(str(x)))
+    
+    df2 = df[["text", "date"] + other_columns_to_keep]
+    df2.columns = ["text", "date"] + other_columns_to_keep
+    
+    df2["text"] = df2["text"].map(lambda x: re.sub(r'\W+', ' ', x))
+    df2["text"] = df2["text"].map(lambda x: re.sub(r'http\S+', ' ', x))
+    df2["text"] = df2["text"].map(lambda x: nltk.word_tokenize(x))
+    df2["text"] = df2["text"].map(lambda x: " ".join(x))
+
+    if wordtagging == True:      
+        df2["text"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+
+    return df2
 
 def topic_int_or_string(Topic_selected, dict_anchor_words):
     
