@@ -203,21 +203,6 @@ def create_vis_frequency_values(df_with_topics, dict_anchor_words):
     plt.xlabel('%')
     plt.show()
 
-    
-    
-    #df_perc_dataset_short = series_perc_dataset_short.to_frame()
-    #df_perc_dataset_short.columns = ["Percentage of documents mentioning each value"]
-    
-
-    
-#    c = {"NEWS": "#1f77b4", "ETHICS": "#ff7f0e", "TECH": "#2ca02c", "LEGAL": "#d62728"}
-    
-    #plt.rcParams.update({'font.size': 16})
-    #ax = df_perc_dataset_short.plot(kind='bar', figsize=(6,6),legend=False)#,
-#                                    color=c)
-    #ax.set_ylabel("%")
-    #ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
-    #plt.show()
 
 def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
     
@@ -282,10 +267,10 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     ax1.set_ylim([0,max_value_y])
     
 
-    fig.tight_layout() 
-    plt.figure(figsize=(20,14), dpi= 400)
+    #fig.tight_layout() 
+    #plt.figure(figsize=(20,14), dpi= 400)
     
-    #max_value_y = 100
+
     
     
 
