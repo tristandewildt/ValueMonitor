@@ -411,7 +411,7 @@ def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_o
     series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
     
     dict_dataset_short = series_perc_dataset_short.to_dict()
-    plt.figure(figsize=(10,number_of_topics_to_find / 2))
+    #plt.figure(figsize=(10,number_of_topics_to_find / 2))
     plt.barh(list(dict_dataset_short.keys()), list(dict_dataset_short.values()))
     plt.gca().invert_yaxis()
     
