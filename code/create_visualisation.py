@@ -193,18 +193,30 @@ def create_vis_frequency_values(df_with_topics, dict_anchor_words):
     series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_sum_dataset_short) * 100)
     series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
     
-    df_perc_dataset_short = series_perc_dataset_short.to_frame()
+    dict_dataset_short = series_perc_dataset_short.to_dict()
+    #plt.figure(figsize=(10,len(list_values_int) / 2))
+    plt.barh(list(dict_dataset_short.keys()), list(dict_dataset_short.values()))
+    plt.gca().invert_yaxis()
+    
+    plt.rcParams.update({'font.size': 16})
+    plt.title('Percentage of documents mentioning each value')
+    plt.xlabel('%')
+    plt.show()
+
+    
+    
+    #df_perc_dataset_short = series_perc_dataset_short.to_frame()
     #df_perc_dataset_short.columns = ["Percentage of documents mentioning each value"]
     
 
     
 #    c = {"NEWS": "#1f77b4", "ETHICS": "#ff7f0e", "TECH": "#2ca02c", "LEGAL": "#d62728"}
     
-    plt.rcParams.update({'font.size': 16})
-    ax = df_perc_dataset_short.plot(kind='bar', figsize=(6,6),legend=False)#,
+    #plt.rcParams.update({'font.size': 16})
+    #ax = df_perc_dataset_short.plot(kind='bar', figsize=(6,6),legend=False)#,
 #                                    color=c)
-    ax.set_ylabel("%")
-    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    #ax.set_ylabel("%")
+    #ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
     #plt.show()
 
 def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
@@ -399,7 +411,6 @@ def inspect_words_over_time_based_on_most_frequent_words(df_with_topics, dict_an
 def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     inspect_words_over_time(df_with_topics, topic_to_evaluate_number, list_words, resampling, smoothing, max_value_y)
-
 
 
 

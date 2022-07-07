@@ -361,4 +361,61 @@ def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
 
     results_import = [df_with_topics, topics, dict_anchor_words]
     return(results_import)
+
+def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_of_documents_in_analysis, number_of_words_per_topic, dict_anchor_words, topics, selected_value):
+
+
     
+    words_values = topics
+
+    #window = 10
+    
+    list_values = list(dict_anchor_words.keys())
+    
+    selected_value_int = list_values.index(selected_value)
+    
+    df_with_topics_to_analyse = df_with_topics.loc[df_with_topics[selected_value_int] > 0]
+
+    dict_anchor_words2 = {}
+    list_anchor_words_other_topics2 = []
+    list_rejected_words2 = []
+
+    #remove columns with int
+    df_with_topics_to_analyse
+    df_with_topics_to_analyse = df_with_topics_to_analyse[[c for c in df_with_topics_to_analyse.columns if type(c) != int]]
+
+
+    tags_to_select = ['NN', 'NNP', 'NNS', 'JJ']
+    df_with_topics_to_analyse["text_tagged"] = df_with_topics_to_analyse["text_tagged"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+    
+    model_and_vectorized_data = make_anchored_topic_model(df_with_topics_to_analyse, number_of_topics_to_find, min(number_of_documents_in_analysis, len(df_with_topics)), dict_anchor_words2, list_anchor_words_other_topics2, list_rejected_words2)
+    topics2 = report_topics(model_and_vectorized_data[0], dict_anchor_words2,number_of_words_per_topic)
+    df_with_topics = create_df_with_topics(df_with_topics_to_analyse, model_and_vectorized_data[0], model_and_vectorized_data[1], number_of_topics_to_find)
+
+    df_with_topics_sum_dataset_short = df_with_topics[[c for c in df_with_topics.columns if type(c) == int]]
+    
+    get_topics = model_and_vectorized_data[0].get_topics()
+    list_topics = []
+    for topic_n,topic in enumerate(get_topics):
+        topic = [(w,mi,s) if s > 0 else ('~'+w,mi,s) for w,mi,s in topic]
+        if len(topic) > 0:
+            words,mis,signs = zip(*topic)    
+            topic_str = ', '.join(words)
+        else:
+            topic_str = ''
+        list_topics.append(topic_str)
+
+    df_with_topics_sum_dataset_short.columns = list_topics
+    df_sum_dataset_short = df_with_topics_sum_dataset_short.sum(numeric_only=True)
+    series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_sum_dataset_short) * 100)
+    series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
+    
+    dict_dataset_short = series_perc_dataset_short.to_dict()
+    plt.figure(figsize=(10,number_of_topics_to_find / 2))
+    plt.barh(list(dict_dataset_short.keys()), list(dict_dataset_short.values()))
+    plt.gca().invert_yaxis()
+    
+    plt.rcParams.update({'font.size': 12})
+    plt.title('Occurence of topics in dataset')
+    plt.xlabel('Percentage')
+    plt.show()
