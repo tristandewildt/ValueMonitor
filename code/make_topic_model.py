@@ -19,7 +19,7 @@ from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
 from numba import jit
 
-@jit # <-- Magic
+@jit
 def filter_stopwords_verbs(x, tags_to_select):
     
     pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
