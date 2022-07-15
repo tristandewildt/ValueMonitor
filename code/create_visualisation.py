@@ -15,9 +15,7 @@ from datetime import datetime
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from matplotlib.ticker import FormatStrFormatter
-from numba import jit
 
-@jit
 def values_in_different_datasets(df_with_topics, dict_anchor_words):
     
     list_values = list(dict_anchor_words.keys())

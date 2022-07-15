@@ -17,9 +17,7 @@ from IPython.display import display, HTML
 from simple_colors import *
 from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
-from numba import jit
 
-@jit
 def filter_stopwords_verbs(x, tags_to_select):
     
     pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
