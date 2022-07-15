@@ -17,8 +17,9 @@ from IPython.display import display, HTML
 from simple_colors import *
 from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
+from numba import jit
 
-
+@jit # <-- Magic
 def filter_stopwords_verbs(x, tags_to_select):
     
     pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
@@ -41,9 +42,9 @@ def clean_df(df, columns_to_select_as_text, column_as_date, other_columns_to_kee
     df2["text"] = df2["text"].map(lambda x: " ".join(x))
 
     if wordtagging == True:      
-        df2["text_tagged"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+        df2["text_cleaned"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
     else:
-        df2["text_tagged"] = df2["text"]
+        df2["text_cleaned"] = df2["text"]
     return df2
 
 def topic_int_or_string(Topic_selected, dict_anchor_words):
@@ -75,8 +76,8 @@ def vectorize(df):
         sublinear_tf=False
     )
 
-    vectorizer = vectorizer.fit(df['text_tagged'])
-    tfidf = vectorizer.transform(df['text_tagged'])
+    vectorizer = vectorizer.fit(df['text_cleaned'])
+    tfidf = vectorizer.transform(df['text_cleaned'])
     vocab = vectorizer.get_feature_names()
     vectorized_data = [vectorizer, tfidf, vocab]
     
@@ -187,7 +188,7 @@ def report_topics(model, dict_anchor_words, number_of_words_per_topic):
 def create_df_with_topics(df, model, vectorized_data, best_number_of_topics):
     vectorizer = vectorized_data[0]
     
-    tfidf = vectorizer.transform(df['text_tagged']) 
+    tfidf = vectorizer.transform(df['text_cleaned']) 
     
     df_documents_topics = pd.DataFrame(
         model.transform(tfidf), 
@@ -272,7 +273,7 @@ def print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["text_tagged"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["text_cleaned"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[(df_selected[topic_to_evaluate_number] == 0) & (df_selected[topic_in_which_some_keywords_are_found] == 1)]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])
@@ -327,7 +328,7 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
         if 'dataset' in sampled_df:
             print("Dataset: "+str(row['dataset']))
         
-        text_combined_tagged = row['text_tagged']
+        text_combined_tagged = row['text_cleaned']
         text_combined_not_tagged = row['text']
         
         tokens = text_combined_not_tagged.split() #### check here with spaces
@@ -364,8 +365,6 @@ def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
 
 def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_of_documents_in_analysis, number_of_words_per_topic, dict_anchor_words, topics, selected_value):
 
-
-    
     words_values = topics
 
     #window = 10
@@ -385,8 +384,8 @@ def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_o
     df_with_topics_to_analyse = df_with_topics_to_analyse[[c for c in df_with_topics_to_analyse.columns if type(c) != int]]
 
 
-    tags_to_select = ['NN', 'NNP', 'NNS', 'JJ']
-    df_with_topics_to_analyse["text_tagged"] = df_with_topics_to_analyse["text_tagged"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+    #tags_to_select = ['NN', 'NNP', 'NNS', 'JJ']
+    #df_with_topics_to_analyse["text_cleaned"] = df_with_topics_to_analyse["text_cleaned"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
     
     model_and_vectorized_data = make_anchored_topic_model(df_with_topics_to_analyse, number_of_topics_to_find, min(number_of_documents_in_analysis, len(df_with_topics)), dict_anchor_words2, list_anchor_words_other_topics2, list_rejected_words2)
     topics2 = report_topics(model_and_vectorized_data[0], dict_anchor_words2,number_of_words_per_topic)
