@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import _pickle as cPickle
 import pickle
+import colorsys
+import seaborn as sns
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from matplotlib import cm
@@ -15,6 +17,9 @@ from datetime import datetime
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from matplotlib.ticker import FormatStrFormatter
+from nltk.sentiment import SentimentIntensityAnalyzer
+
+
 
 def values_in_different_datasets(df_with_topics, dict_anchor_words):
     
@@ -67,6 +72,8 @@ def values_in_different_datasets(df_with_topics, dict_anchor_words):
         print("Number articles in "+str(dataset)+": "+str(len(df_with_topics[df_with_topics['dataset'] == dataset])))
     
 def value_in_different_datasets(df_with_topics, dict_anchor_words, selected_value):
+    
+    
     
     list_values = list(dict_anchor_words.keys())
     list_values_int = []
@@ -215,6 +222,7 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     df_frequencies = df_frequencies.resample(resampling).sum()
        
     list_topics = list(range(len(copy_dict_anchor_words)))
+    
     df_frequencies = df_frequencies[list_topics]
     
     df_frequencies = df_frequencies[list_topics].div(df_with_topics_freq["count"], axis=0)
@@ -238,16 +246,23 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
 
     print(values_to_include_in_visualisation)
+    
+    
+    n_colors = len(values_to_include_in_visualisation)
+    colours = cm.tab20(np.linspace(0, 1, n_colors))
+    
 
+    counter = 0
     fig, ax1 = plt.subplots()
     for value in values_to_include_in_visualisation:
             ysmoothed = gaussian_filter1d(combined_df[value].tolist(), sigma=sigma)
-            ax1.plot(x, ysmoothed, label=str(value), linewidth=2)
+            ax1.plot(x, ysmoothed, label=str(value), linewidth=2, color = colours[counter])
+            counter = counter + 1
 
     
     ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
     ax1.set_ylabel('Percentage of documents addressing each value \n per unit of time (lines)  (%)', fontsize=12, fontweight="bold")
-    ax1.legend(prop={'size': 10})
+    ax1.legend(prop={'size': 7})
     
     timestamp_0 = x[0]
     timestamp_1 = x[1]
@@ -347,13 +362,20 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
     plt.show()
     
     
-def inspect_words_over_time(df_with_topics, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
+def inspect_words_over_time(df_with_topics, selected_value, dict_anchor_words, topics, list_words, resampling, smoothing, max_value_y):
 
-    df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[topic_to_evaluate] == 1] 
+    if len(list_words) = 0:
+        list_words = topics[selected_value]
+    
+    value_int = list(dict_anchor_words.keys()).index(selected_value)
+
+    df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[value_int] == 1] 
     df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('date')  
     
     df_with_topics_freq = df_with_topics_selected_topic.resample(resampling).size().reset_index(name="count")
     df_with_topics_freq = df_with_topics_freq.set_index('date')
+    
+    
     
     for word in list_words:
         df_with_topics_selected_topic[word] = df_with_topics_selected_topic["text"].str.contains(pat = word).astype(int) #''' Check here '''
@@ -369,11 +391,16 @@ def inspect_words_over_time(df_with_topics, topic_to_evaluate, list_words, resam
     df_with_topics_selected_topic = df_with_topics_selected_topic * 100
 
     sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
+    
+    n_colors = len(list_words)
+    colours = cm.tab20(np.linspace(0, 1, n_colors))
 
+    counter = 0
     fig, ax1 = plt.subplots()
     for word in df_with_topics_selected_topic:
         ysmoothed = gaussian_filter1d(df_with_topics_selected_topic[word].tolist(), sigma=sigma)
-        ax1.plot(x, ysmoothed, label=word, linewidth=2)
+        ax1.plot(x, ysmoothed, label=word, linewidth=2, color = colours[counter])
+        counter = counter + 1
     
     ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
     ax1.set_ylabel('Word appearance in documents related to the topic \n over time (% of documents)', fontsize=12, fontweight="bold")
@@ -396,5 +423,36 @@ def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words,
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     inspect_words_over_time(df_with_topics, topic_to_evaluate_number, list_words, resampling, smoothing, max_value_y)
 
+def perform_sentiment_analysis (df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
+    analyzer = SentimentIntensityAnalyzer()
+    
+    value_int = list(dict_anchor_words.keys()).index(selected_value)
+    
+    selected_dataset = df_with_topics.loc[(df_with_topics[value_int] == 1) & (df_with_topics['date'] >= dateutil.parser.parse(str(starttime))) & (df_with_topics['date'] < dateutil.parser.parse(str(endtime)))] 
+    
+    selected_dataset['polarity'] = selected_dataset['text'].apply(lambda x: analyzer.polarity_scores(x))
+    selected_dataset = pd.concat([selected_dataset.drop(['polarity'], axis=1), selected_dataset['polarity'].apply(pd.Series)], axis=1)
+    selected_dataset['sentiment'] = selected_dataset['compound'].apply(lambda x: 'positive' if x >0 else 'neutral' if x==0 else 'negative')
+    sns.countplot(y='sentiment', 
+                 data=selected_dataset, 
+                 palette=['#b2d8d8',"#008080", '#db3d13']
+                 );
+    plt.show()
+    
+    g = sns.lineplot(x='date', y='compound', data=selected_dataset)
 
+    g.set(xticklabels=[]) 
+    g.set(title='Sentiment of articles')
+    g.set(xlabel="Time")
+    g.set(ylabel="Sentiment")
+    g.tick_params(bottom=False)
+
+    g.axhline(0, ls='--', c = 'grey')
+    plt.show()
+    
+    sns.boxplot(y='compound', 
+            x='sentiment',
+            palette=['#b2d8d8',"#008080", '#db3d13'], 
+            data=selected_dataset);
+    plt.show()
 

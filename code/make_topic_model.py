@@ -18,6 +18,7 @@ from simple_colors import *
 from nltk.tag.perceptron import PerceptronTagger
 tagger=PerceptronTagger()
 
+
 def filter_stopwords_verbs(x, tags_to_select):
     
     pos_tagged_tokens = tagger.tag(nltk.word_tokenize(x))
@@ -40,9 +41,9 @@ def clean_df(df, columns_to_select_as_text, column_as_date, other_columns_to_kee
     df2["text"] = df2["text"].map(lambda x: " ".join(x))
 
     if wordtagging == True:      
-        df2["text_cleaned"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+        df2["text_tagged"] = df2["text"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
     else:
-        df2["text_cleaned"] = df2["text"]
+        df2["text_tagged"] = df2["text"]
     return df2
 
 def topic_int_or_string(Topic_selected, dict_anchor_words):
@@ -55,10 +56,42 @@ def topic_int_or_string(Topic_selected, dict_anchor_words):
         
     return Topic_selected_number
 
-def reduce_df(df, max_number_of_documents):
+def reduce_df(df, max_number_of_documents, dict_anchor_words, equilibrate):
 
     ''' Here we should include an option in case the dataset is not well spread over time '''
-    df_reduced = df.sample(min(max_number_of_documents, len(df)))
+    if equilibrate == True and len(dict_anchor_words)>0:
+        df_reduced = df
+        
+        #list_words = list(dict_anchor_words.values())
+        #pattern = '|'.join([item for sublist in list_words for item in sublist])
+        #df_reduced = df_reduced[df_reduced['text_tagged'].str.contains(pattern)]
+        
+        dict_frequencies = {}
+        for key, value in dict_anchor_words.items():
+            pattern = '|'.join(value)
+            dict_frequencies[key] = len(df_reduced[df_reduced['text_tagged'].str.contains(pattern)])
+        dict_frequencies = dict(sorted(dict_frequencies.items(), key=lambda item: item[1]))
+    
+        df_focused = pd.DataFrame(columns=df_reduced.columns.tolist())
+        #number_of_articles_still_to_take = max_number_of_documents
+        average_number_articles_to_take = round(max_number_of_documents / len(dict_anchor_words))
+        for key, value in dict_frequencies.items():
+            pattern = '|'.join(dict_anchor_words[key])
+            df_this_value = df_reduced[df_reduced['text_tagged'].str.contains(pattern)]
+            if len(df_this_value) > average_number_articles_to_take:
+                df_this_value = df_this_value.sample(n=average_number_articles_to_take)
+            else:
+                remaining_articles_not_taken = average_number_articles_to_take - len(df_this_value)
+                average_number_articles_to_take = average_number_articles_to_take + round(remaining_articles_not_taken / len(dict_anchor_words))
+            df_focused = df_focused.append(df_this_value)
+        df_focused = df_focused.drop_duplicates(subset='text_tagged', keep="first")
+        #number_of_documents_in_analysis = len(df_focused)
+        df_reduced = df_focused
+    
+    else: 
+        df_reduced = df.sample(min(max_number_of_documents, len(df)))
+        
+    #print(len(df_reduced))
     return df_reduced
 
 def vectorize(df):
@@ -74,8 +107,8 @@ def vectorize(df):
         sublinear_tf=False
     )
 
-    vectorizer = vectorizer.fit(df['text_cleaned'])
-    tfidf = vectorizer.transform(df['text_cleaned'])
+    vectorizer = vectorizer.fit(df['text_tagged'])
+    tfidf = vectorizer.transform(df['text_tagged'])
     vocab = vectorizer.get_feature_names()
     vectorized_data = [vectorizer, tfidf, vocab]
     
@@ -99,8 +132,9 @@ def make_topic_model(df, number_of_topics, anchors):
 
 def find_best_number_of_topics(df, number_of_documents_in_analysis, min_number_of_topics, max_number_of_topics):
     ''' Think here what could be some errors that people could make with regard to input data '''
-    
-    df_reduced = reduce_df(df, number_of_documents_in_analysis)
+    equilibrate = False
+    dict_anchor_words_empty = {}
+    df_reduced = reduce_df(df, number_of_documents_in_analysis, dict_anchor_words_empty, equilibrate)
     
     interval = (max_number_of_topics - min_number_of_topics) / 4
     list_topics_to_try = np.arange(min_number_of_topics, (max_number_of_topics + interval), interval).tolist()
@@ -132,8 +166,8 @@ def find_best_number_of_topics(df, number_of_documents_in_analysis, min_number_o
 
 def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_anchor_words_other_topics, list_rejected_words):
     ''' Think here what could be some errors that people could make with regard to input data '''
-    
-    df_reduced = reduce_df(df, number_of_documents_in_analysis)   
+    equilibrate = True
+    df_reduced = reduce_df(df, number_of_documents_in_analysis, dict_anchor_words, equilibrate)   
     vectorized_data = vectorize(df_reduced)
     vocab = vectorized_data[2]
     
@@ -172,21 +206,23 @@ def report_topics(model, dict_anchor_words, number_of_words_per_topic):
         index_values.append(list_values.index(i))
 
     for i, topic_ngrams in enumerate(model.get_topics(n_words=number_of_words_per_topic)):
+        topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
+       
         if i in index_values:
-            topic_ngrams = [ngram[0] for ngram in topic_ngrams if ngram[1] > 0]
             words_values[list_values[i]] = topic_ngrams
-        
-            if len(list_values) > i:
-                print("Topic #{} ({}): {}".format(i, list_values[i], ", ".join(topic_ngrams)))
-            else:
-                print("Topic #{}: {}".format(i, ", ".join(topic_ngrams)))
+            print("Topic #{} ({}): {}".format(i, list_values[i], ", ".join(topic_ngrams)))
+        else:
+            #words_values[i] = topic_ngrams
+            print("Topic #{}: {}".format(i, ", ".join(topic_ngrams)))
+        words_values[i] = topic_ngrams
+
             
     return words_values
 
 def create_df_with_topics(df, model, vectorized_data, best_number_of_topics):
     vectorizer = vectorized_data[0]
     
-    tfidf = vectorizer.transform(df['text_cleaned']) 
+    tfidf = vectorizer.transform(df['text_tagged']) 
     
     df_documents_topics = pd.DataFrame(
         model.transform(tfidf), 
@@ -271,7 +307,7 @@ def print_documents_related_to_the_value_that_are_not_yet_in_the_topics(df_with_
     
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     
-    df_selected = df_with_topics[df_with_topics["text_cleaned"].str.contains('|'.join(list_of_words))]
+    df_selected = df_with_topics[df_with_topics["text_tagged"].str.contains('|'.join(list_of_words))]
     df_selected = df_selected[(df_selected[topic_to_evaluate_number] == 0) & (df_selected[topic_in_which_some_keywords_are_found] == 1)]
     
     listToStr = ', '.join([str(elem) for elem in list_of_words])
@@ -304,19 +340,28 @@ def print_sample_documents_related_to_topic_with_keywords(df_with_topics, dict_a
     
 def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selected_value, size_sample, window, show_extracts, show_full_text):
     
-    words_values = topics
+    
+    words_topics = topics
 
     #window = 10
     
     list_values = list(dict_anchor_words.keys())
     
-    selected_value_int = list_values.index(selected_value)
+    if type(selected_value) == str:
+        selected_value_int = list_values.index(selected_value)
+    else:
+        selected_value_int = selected_value
     
     df_with_topics_to_analyse = df_with_topics.loc[df_with_topics[selected_value_int] > 0]
+    print("Number of articles in selected dataset: "+str(len(df_with_topics_to_analyse)))
     
     
     sampled_df = df_with_topics_to_analyse.sample(n = min(size_sample, len(df_with_topics_to_analyse)))
-    print("Keywords related to "+str(selected_value)+" found in text:"+str(words_values[selected_value]))
+    if type(selected_value) == str:
+        print("Keywords related to "+str(selected_value)+" found in text:"+str(words_topics[selected_value]))
+    else:
+        print("Keywords related to topic "+str(selected_value))  
+    
     print("")
     
     for index, row in sampled_df.iterrows():
@@ -326,13 +371,13 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
         if 'dataset' in sampled_df:
             print("Dataset: "+str(row['dataset']))
         
-        text_combined_tagged = row['text_cleaned']
+        text_combined_tagged = row['text_tagged']
         text_combined_not_tagged = row['text']
         
         tokens = text_combined_not_tagged.split() #### check here with spaces
 
         if show_full_text == True:
-            for word in words_values[selected_value]:
+            for word in words_topics[selected_value]:
                 text_combined_not_tagged = re.sub(word, '\033[1m' + '[' + str(red(word)) + ']' + '\033[0m', text_combined_not_tagged, flags=re.IGNORECASE)
             print(text_combined_not_tagged)
     
@@ -340,7 +385,7 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
             print("Values:")
             print("")
             for index in range(len(tokens)):
-                if tokens[index].lower() in words_values[selected_value]:
+                if tokens[index].lower() in words_topics[selected_value]:
                     start = max(0, index-window)
                     finish = min(len(tokens), index+window+1)
                     lhs = " ".join( tokens[start:index] )
@@ -362,16 +407,23 @@ def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
     return(results_import)
 
 def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_of_documents_in_analysis, number_of_words_per_topic, dict_anchor_words, topics, selected_value):
-
-    words_values = topics
+    
+    #words_values = topics
 
     #window = 10
     
+    
+    
     list_values = list(dict_anchor_words.keys())
     
-    selected_value_int = list_values.index(selected_value)
+    if type(selected_value) == str:
+        selected_value_int = list_values.index(selected_value)
+    else:
+        selected_value_int = selected_value
+
     
     df_with_topics_to_analyse = df_with_topics.loc[df_with_topics[selected_value_int] > 0]
+    print("Number of articles in selected dataset: "+str(len(df_with_topics_to_analyse)))
 
     dict_anchor_words2 = {}
     list_anchor_words_other_topics2 = []
@@ -382,11 +434,11 @@ def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_o
     df_with_topics_to_analyse = df_with_topics_to_analyse[[c for c in df_with_topics_to_analyse.columns if type(c) != int]]
 
 
-    #tags_to_select = ['NN', 'NNP', 'NNS', 'JJ']
-    #df_with_topics_to_analyse["text_cleaned"] = df_with_topics_to_analyse["text_cleaned"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
+    tags_to_select = ['NN', 'NNP', 'NNS', 'JJ']
+    df_with_topics_to_analyse["text_tagged"] = df_with_topics_to_analyse["text_tagged"].apply(lambda x: filter_stopwords_verbs(x, tags_to_select))
     
     model_and_vectorized_data = make_anchored_topic_model(df_with_topics_to_analyse, number_of_topics_to_find, min(number_of_documents_in_analysis, len(df_with_topics)), dict_anchor_words2, list_anchor_words_other_topics2, list_rejected_words2)
-    topics2 = report_topics(model_and_vectorized_data[0], dict_anchor_words2,number_of_words_per_topic)
+    #topics2 = report_topics(model_and_vectorized_data[0], dict_anchor_words2,number_of_words_per_topic)
     df_with_topics = create_df_with_topics(df_with_topics_to_analyse, model_and_vectorized_data[0], model_and_vectorized_data[1], number_of_topics_to_find)
 
     df_with_topics_sum_dataset_short = df_with_topics[[c for c in df_with_topics.columns if type(c) == int]]
@@ -408,11 +460,13 @@ def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_o
     series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
     
     dict_dataset_short = series_perc_dataset_short.to_dict()
-    plt.figure(figsize=(10,number_of_topics_to_find / 2))
+    plt.figure(figsize=(10,number_of_topics_to_find / 1.8))
     plt.barh(list(dict_dataset_short.keys()), list(dict_dataset_short.values()))
     plt.gca().invert_yaxis()
     
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 16})
     plt.title('Occurence of topics in dataset')
     plt.xlabel('Percentage')
     plt.show()
+    
+
