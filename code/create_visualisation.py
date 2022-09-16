@@ -364,7 +364,7 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
     
 def inspect_words_over_time(df_with_topics, selected_value, dict_anchor_words, topics, list_words, resampling, smoothing, max_value_y):
 
-    if len(list_words) = 0:
+    if len(list_words) == 0:
         list_words = topics[selected_value]
     
     value_int = list(dict_anchor_words.keys()).index(selected_value)
