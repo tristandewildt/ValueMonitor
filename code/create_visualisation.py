@@ -423,7 +423,7 @@ def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words,
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     inspect_words_over_time(df_with_topics, topic_to_evaluate_number, list_words, resampling, smoothing, max_value_y)
 
-def perform_sentiment_analysis (df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
+def perform_sentiment_analysis(df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
     analyzer = SentimentIntensityAnalyzer()
     
     value_int = list(dict_anchor_words.keys()).index(selected_value)
