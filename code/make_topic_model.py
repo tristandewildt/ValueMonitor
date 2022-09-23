@@ -91,7 +91,7 @@ def reduce_df(df, max_number_of_documents, dict_anchor_words, equilibrate):
             additional_df = df.sample(additional_documents_to_take)
             df_focused = pd.concat([df_focused, additional_df])
         
-        #number_of_documents_in_analysis = len(df_focused)
+        print("Number of articles used to build the topic model: "+str(len(df_focused)))
         df_reduced = df_focused
     
     else: 
