@@ -85,6 +85,12 @@ def reduce_df(df, max_number_of_documents, dict_anchor_words, equilibrate):
                 average_number_articles_to_take = average_number_articles_to_take + round(remaining_articles_not_taken / len(dict_anchor_words))
             df_focused = df_focused.append(df_this_value)
         df_focused = df_focused.drop_duplicates(subset='text_tagged', keep="first")
+        
+        if len(df_focused)< max_number_of_documents:
+            additional_documents_to_take = max_number_of_documents - len(df_focused)
+            additional_df = df.sample(additional_documents_to_take)
+            df_focused = pd.concat([df_focused, additional_df])
+        
         #number_of_documents_in_analysis = len(df_focused)
         df_reduced = df_focused
     
@@ -407,13 +413,7 @@ def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
     return(results_import)
 
 def explore_topics_in_dataset(df_with_topics, number_of_topics_to_find, number_of_documents_in_analysis, number_of_words_per_topic, dict_anchor_words, topics, selected_value):
-    
-    #words_values = topics
-
-    #window = 10
-    
-    
-    
+       
     list_values = list(dict_anchor_words.keys())
     
     if type(selected_value) == str:
