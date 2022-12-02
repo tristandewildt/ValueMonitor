@@ -136,6 +136,39 @@ def make_topic_model(df, number_of_topics, anchors):
 
     return model
 
+def make_auto_anchored_topic_model(df, number_of_topics):
+    
+    vectorized_data = vectorize(df)
+    
+    tfidf = vectorized_data[1]
+    vocab = vectorized_data[2]
+
+    model = ct.Corex(n_hidden=number_of_topics, seed=42)
+    model = model.fit(
+            tfidf,
+            words=vocab) # Check whether this still works when there are no anchor words   
+    
+    new_tuples = []
+    for i in range(0,number_of_topics):
+        words_for_ith_topic = model.get_topics(topic=i, n_words=5)
+        # print(words_for_ith_topic)
+        a = i
+        for j in range(0,5):
+            new_tuple = (a, *words_for_ith_topic[j])
+            # print(new_tuple)
+            new_tuples.append(new_tuple)
+
+    df_anchors = pd.DataFrame(new_tuples,columns=['topic', 'word', 'tc_topic', 'word_present'])
+
+    anchor_words = []
+    for i in range(0,number_of_topics):
+        anchor_words_per_topic = df_anchors.word[df_anchors.topic == i].values.tolist()
+        anchor_words.append(anchor_words_per_topic)
+        anchored_topic_model = ct.Corex(n_hidden=50, seed=2)
+        anchored_topic_model.fit(tfidf, words=vocab, anchors=anchor_words, anchor_strength=6)
+
+    return model
+
 def find_best_number_of_topics(df, number_of_documents_in_analysis, min_number_of_topics, max_number_of_topics):
     ''' Think here what could be some errors that people could make with regard to input data '''
     equilibrate = False
@@ -170,32 +203,34 @@ def find_best_number_of_topics(df, number_of_documents_in_analysis, min_number_o
     
     return best_number_of_topics
 
-def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_anchor_words_other_topics, list_rejected_words):
+def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analysis, dict_anchor_words, list_anchor_words_other_topics, list_rejected_words, auto_anchor):
     ''' Think here what could be some errors that people could make with regard to input data '''
     equilibrate = True
     df_reduced = reduce_df(df, number_of_documents_in_analysis, dict_anchor_words, equilibrate)   
     vectorized_data = vectorize(df_reduced)
     vocab = vectorized_data[2]
-    
-    anchors = [[]] * number_of_topics
-    
-    counter = 0
-    for key, value in dict_anchor_words.items():
-        value_lowercase = value
-        for i in range(len(value_lowercase)):
-            value_lowercase[i] = value_lowercase[i].lower()
-        anchors[counter] = value_lowercase
-        counter += 1
-    for i in list_anchor_words_other_topics:
-        anchors[counter]=i
-        counter += 1
-    anchors[counter]=list_rejected_words
-    
-    anchors = [
-        [a for a in topic if a in vocab]
-        for topic in anchors]
-    
-    model = make_topic_model(df_reduced, number_of_topics, anchors)
+    if auto_anchor == False:
+        anchors = [[]] * number_of_topics
+        
+        counter = 0
+        for key, value in dict_anchor_words.items():
+            value_lowercase = value
+            for i in range(len(value_lowercase)):
+                value_lowercase[i] = value_lowercase[i].lower()
+            anchors[counter] = value_lowercase
+            counter += 1
+        for i in list_anchor_words_other_topics:
+            anchors[counter]=i
+            counter += 1
+        anchors[counter]=list_rejected_words
+        
+        anchors = [
+            [a for a in topic if a in vocab]
+            for topic in anchors]
+        
+        model = make_topic_model(df_reduced, number_of_topics, anchors)
+    else:
+        model = make_auto_anchored_topic_model(df_reduced, number_of_topics)
     model_and_vectorized_data = [model, vectorized_data]
     
     return model_and_vectorized_data
