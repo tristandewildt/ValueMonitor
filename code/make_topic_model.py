@@ -136,7 +136,7 @@ def make_topic_model(df, number_of_topics, anchors):
 
     return model
 
-def make_auto_anchored_topic_model(df, number_of_topics):
+def make_auto_anchored_topic_model(df, number_of_topics, anchors):
     
     vectorized_data = vectorize(df)
     
@@ -146,7 +146,9 @@ def make_auto_anchored_topic_model(df, number_of_topics):
     model = ct.Corex(n_hidden=number_of_topics, seed=42)
     model = model.fit(
             tfidf,
-            words=vocab) # Check whether this still works when there are no anchor words   
+            words=vocab,
+            anchors=anchors,
+            anchor_strength=6) # Check whether this still works when there are no anchor words   
     
     new_tuples = []
     for i in range(0,number_of_topics):
@@ -209,28 +211,28 @@ def make_anchored_topic_model(df, number_of_topics, number_of_documents_in_analy
     df_reduced = reduce_df(df, number_of_documents_in_analysis, dict_anchor_words, equilibrate)   
     vectorized_data = vectorize(df_reduced)
     vocab = vectorized_data[2]
-    if auto_anchor == False:
-        anchors = [[]] * number_of_topics
-        
-        counter = 0
-        for key, value in dict_anchor_words.items():
-            value_lowercase = value
-            for i in range(len(value_lowercase)):
-                value_lowercase[i] = value_lowercase[i].lower()
-            anchors[counter] = value_lowercase
-            counter += 1
-        for i in list_anchor_words_other_topics:
-            anchors[counter]=i
-            counter += 1
-        anchors[counter]=list_rejected_words
-        
-        anchors = [
-            [a for a in topic if a in vocab]
-            for topic in anchors]
-        
+    anchors = [[]] * number_of_topics
+    
+    counter = 0
+    for key, value in dict_anchor_words.items():
+        value_lowercase = value
+        for i in range(len(value_lowercase)):
+            value_lowercase[i] = value_lowercase[i].lower()
+        anchors[counter] = value_lowercase
+        counter += 1
+    for i in list_anchor_words_other_topics:
+        anchors[counter]=i
+        counter += 1
+    anchors[counter]=list_rejected_words
+    
+    anchors = [
+        [a for a in topic if a in vocab]
+        for topic in anchors]
+
+    if auto_anchor == False:    
         model = make_topic_model(df_reduced, number_of_topics, anchors)
     else:
-        model = make_auto_anchored_topic_model(df_reduced, number_of_topics)
+        model = make_auto_anchored_topic_model(df_reduced, number_of_topics, anchors)
     model_and_vectorized_data = [model, vectorized_data]
     
     return model_and_vectorized_data
