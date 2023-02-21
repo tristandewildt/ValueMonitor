@@ -63,7 +63,7 @@ def top_topics_on_values(df_with_topics, selected_value, dict_anchor_words, topi
 
 
 
-def top_topics_on_values_over_time(df_with_topics, selected_value, selected_dataset, dict_anchor_words, topics_weights, top_topics_to_show, topics_to_remove_int, smoothing, max_value_y, resampling):
+def top_topics_on_values_over_time(df_with_topics, selected_value, dict_anchor_words, topics_weights, top_topics_to_show, topics_to_remove_int, smoothing, max_value_y, resampling):
   
     df_to_evaluate = df_with_topics
     
