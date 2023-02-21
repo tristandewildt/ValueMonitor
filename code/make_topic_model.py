@@ -225,6 +225,23 @@ def report_topics(model, dict_anchor_words, number_of_words_per_topic):
             
     return words_values
 
+def report_topics_words_and_weights(model, dict_anchor_words, number_of_words_per_topic):
+    
+    topics_weights = {}
+    list_values_int = list(range(len(dict_anchor_words)))
+    list_values = list(dict_anchor_words.keys())
+    for i, topic_ngrams in enumerate(model.get_topics(n_words=number_of_words_per_topic)):
+        dict_words = {}
+        for j in topic_ngrams:
+            if j[1]> 0:
+                dict_words[j[0]] = round(j[1],3)
+        if i in list_values_int:
+            topics_weights['Topic #'+str(i)+'# ('+str(list_values[i])+')'] = dict_words
+        else:
+            topics_weights['Topic #'+str(i)+'#'] = dict_words
+    return topics_weights
+    
+
 def create_df_with_topics(df, model, vectorized_data, best_number_of_topics):
     vectorizer = vectorized_data[0]
     
