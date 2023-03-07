@@ -83,7 +83,8 @@ def reduce_df(df, max_number_of_documents, dict_anchor_words, equilibrate):
             else:
                 remaining_articles_not_taken = average_number_articles_to_take - len(df_this_value)
                 average_number_articles_to_take = average_number_articles_to_take + round(remaining_articles_not_taken / len(dict_anchor_words))
-            df_focused = df_focused.append(df_this_value)
+            #df_focused = df_focused.append(df_this_value)
+            df_focused = pd.concat([df_focused,df_this_value])
         df_focused = df_focused.drop_duplicates(subset='text_tagged', keep="first")
         #number_of_documents_in_analysis = len(df_focused)
         df_reduced = df_focused
