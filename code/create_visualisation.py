@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import _pickle as cPickle
 import pickle
-import colorsys
-import seaborn as sns
-import re
+import plotly.express as px
+import plotly.graph_objects as go
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from matplotlib import cm
@@ -18,8 +17,10 @@ from datetime import datetime
 import dateutil.parser
 from dateutil.relativedelta import relativedelta
 from matplotlib.ticker import FormatStrFormatter
-from nltk.sentiment import SentimentIntensityAnalyzer
 from colorama import Fore, Back, Style
+from umap import UMAP
+from typing import List
+from sklearn.preprocessing import MinMaxScaler
 
 def top_topics_on_values(df_with_topics, selected_value, dict_anchor_words, topics_weights, topics_to_remove_int, top_topics_to_show):
     
@@ -184,6 +185,7 @@ def values_in_different_datasets(df_with_topics, dict_anchor_words):
         df_sum = df_with_topics_sum_dataset.sum(numeric_only=True)
         series_perc[dataset] = df_sum.apply(lambda x: x / len(df_with_topics_sum_dataset) * 100)
     
+    #print(series_perc)
     
     df_perc = {k:v.to_frame() for k, v in series_perc.items()}
     df_perc_all = df_perc[list_datasets[0]]
@@ -216,8 +218,6 @@ def values_in_different_datasets(df_with_topics, dict_anchor_words):
         print("Number articles in "+str(dataset)+": "+str(len(df_with_topics[df_with_topics['dataset'] == dataset])))
     
 def value_in_different_datasets(df_with_topics, dict_anchor_words, selected_value):
-    
-    
     
     list_values = list(dict_anchor_words.keys())
     list_values_int = []
@@ -278,13 +278,16 @@ def values_in_different_groups(df_with_topics, dict_anchor_words, selected_datas
 
     df_with_topics_field = df_with_topics.loc[df_with_topics['dataset'] == selected_dataset]
         
+
     list_datasets = df_with_topics['dataset'].unique().tolist()
+
         
-    df_sum_dataset_short = df_with_topics_field.sum(numeric_only=True)               
-    
+    df_sum_dataset_short = df_with_topics_field.sum(numeric_only=True)
+               
+
+        
     series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_field) * 100)
-    list_values_int = list(range(len(dict_anchor_words)))
-    series_perc_dataset_short = series_perc_dataset_short[list_values_int]
+    series_perc_dataset_short = series_perc_dataset_short[:len(dict_anchor_words)]
 
     counter = 0
     for value, keywords in dict_anchor_words.items():
@@ -340,16 +343,19 @@ def create_vis_frequency_values(df_with_topics, dict_anchor_words):
     series_perc_dataset_short = df_sum_dataset_short.apply(lambda x: x / len(df_with_topics_sum_dataset_short) * 100)
     series_perc_dataset_short = series_perc_dataset_short.sort_values(ascending=False)
     
-    dict_dataset_short = series_perc_dataset_short.to_dict()
-    #plt.figure(figsize=(10,len(list_values_int) / 2))
-    plt.barh(list(dict_dataset_short.keys()), list(dict_dataset_short.values()))
-    plt.gca().invert_yaxis()
+    df_perc_dataset_short = series_perc_dataset_short.to_frame()
+    #df_perc_dataset_short.columns = ["Percentage of documents mentioning each value"]
+    
+
+    
+#    c = {"NEWS": "#1f77b4", "ETHICS": "#ff7f0e", "TECH": "#2ca02c", "LEGAL": "#d62728"}
     
     plt.rcParams.update({'font.size': 16})
-    plt.title('Percentage of documents mentioning each value')
-    plt.xlabel('%')
-    plt.show()
-
+    ax = df_perc_dataset_short.plot(kind='bar', figsize=(6,6),legend=False)#,
+#                                    color=c)
+    ax.set_ylabel("%")
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    #plt.show()
 
 def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
     
@@ -363,7 +369,6 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     df_frequencies = df_frequencies.resample(resampling).sum()
        
     list_topics = list(range(len(copy_dict_anchor_words)))
-    
     df_frequencies = df_frequencies[list_topics]
     
     df_frequencies = df_frequencies[list_topics].div(df_with_topics_freq["count"], axis=0)
@@ -387,23 +392,16 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
 
     print(values_to_include_in_visualisation)
-    
-    
-    n_colors = len(values_to_include_in_visualisation)
-    colours = cm.tab20(np.linspace(0, 1, n_colors))
-    
 
-    counter = 0
     fig, ax1 = plt.subplots()
     for value in values_to_include_in_visualisation:
             ysmoothed = gaussian_filter1d(combined_df[value].tolist(), sigma=sigma)
-            ax1.plot(x, ysmoothed, label=str(value), linewidth=2, color = colours[counter])
-            counter = counter + 1
+            ax1.plot(x, ysmoothed, label=str(value), linewidth=2)
 
     
     ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
     ax1.set_ylabel('Percentage of documents addressing each value \n per unit of time (lines)  (%)', fontsize=12, fontweight="bold")
-    ax1.legend(prop={'size': 7})
+    ax1.legend(prop={'size': 10})
     
     timestamp_0 = x[0]
     timestamp_1 = x[1]
@@ -422,10 +420,10 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     ax1.set_ylim([0,max_value_y])
     
 
-    #fig.tight_layout() 
-    #plt.figure(figsize=(20,14), dpi= 400)
+    fig.tight_layout() 
+    plt.figure(figsize=(20,14), dpi= 400)
     
-
+    #max_value_y = 100
     
     
 
@@ -503,20 +501,13 @@ def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_sel
     plt.show()
     
     
-def inspect_words_over_time(df_with_topics, selected_value, dict_anchor_words, topics, list_words, resampling, smoothing, max_value_y):
+def inspect_words_over_time(df_with_topics, topic_to_evaluate, list_words, resampling, smoothing, max_value_y):
 
-    if len(list_words) == 0:
-        list_words = topics[selected_value]
-    
-    value_int = list(dict_anchor_words.keys()).index(selected_value)
-
-    df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[value_int] == 1] 
+    df_with_topics_selected_topic = df_with_topics.loc[df_with_topics[topic_to_evaluate] == 1] 
     df_with_topics_selected_topic = df_with_topics_selected_topic.set_index('date')  
     
     df_with_topics_freq = df_with_topics_selected_topic.resample(resampling).size().reset_index(name="count")
     df_with_topics_freq = df_with_topics_freq.set_index('date')
-    
-    
     
     for word in list_words:
         df_with_topics_selected_topic[word] = df_with_topics_selected_topic["text"].str.contains(pat = word).astype(int) #''' Check here '''
@@ -532,16 +523,11 @@ def inspect_words_over_time(df_with_topics, selected_value, dict_anchor_words, t
     df_with_topics_selected_topic = df_with_topics_selected_topic * 100
 
     sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
-    
-    n_colors = len(list_words)
-    colours = cm.tab20(np.linspace(0, 1, n_colors))
 
-    counter = 0
     fig, ax1 = plt.subplots()
     for word in df_with_topics_selected_topic:
         ysmoothed = gaussian_filter1d(df_with_topics_selected_topic[word].tolist(), sigma=sigma)
-        ax1.plot(x, ysmoothed, label=word, linewidth=2, color = colours[counter])
-        counter = counter + 1
+        ax1.plot(x, ysmoothed, label=word, linewidth=2)
     
     ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
     ax1.set_ylabel('Word appearance in documents related to the topic \n over time (% of documents)', fontsize=12, fontweight="bold")
@@ -554,7 +540,7 @@ def inspect_words_over_time(df_with_topics, selected_value, dict_anchor_words, t
 
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
-    
+
 def compare_words_topics_in_runs (dict_all_df_with_topics, dict_all_topics, dict_anchor_words, selected_value, model_runs_to_show, resampling, smoothing, max_value_y):
     
     copy_dict_anchor_words = dict_anchor_words.copy()
@@ -648,6 +634,111 @@ def compare_words_topics_in_runs (dict_all_df_with_topics, dict_all_topics, dict
     
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
+    
+def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove): 
+    
+    title: str = "<b>Intertopic Distance Map</b>"
+    width: int = 650
+    height: int = 650
+   
+    topic_list = list(df_with_topics.columns)
+    topic_list = [num for num in topic_list if isinstance(num, (int,float))]
+    df_only_topics = df_with_topics[topic_list]
+    frequencies = df_only_topics.sum().tolist()
+    
+    for i in range(len(frequencies)):
+        if frequencies[i] == 0 or frequencies[i] == len(df_only_topics):
+            list_topics_to_remove.append(i)
+    
+    topic_list = [topic for topic in topic_list if topic not in list_topics_to_remove]
+    df_only_topics = df_only_topics[topic_list]
+    frequencies = df_only_topics.sum().tolist()
+    
+    embeddings = df_only_topics.T.to_numpy()
+    embeddings = MinMaxScaler().fit_transform(embeddings)
+    embeddings = UMAP(n_neighbors=2, n_components=2, metric='hellinger', random_state=42).fit_transform(embeddings)
+    
+    words = []
+    for i in topic_list:
+        words.append(' | '.join(topics[i][:5]))
+    
+    df = pd.DataFrame({"x": embeddings[:, 0], "y": embeddings[:, 1],
+                       "Topic": topic_list, "Words": words, "Size": frequencies})
+
+    return _plotly_topic_visualization(df, topic_list, title, width, height)
+
+def _plotly_topic_visualization(df: pd.DataFrame,
+                                topic_list: List[str],
+                                title: str,
+                                width: int,
+                                height: int):
+    """ Create plotly-based visualization of topics with a slider for topic selection """
+
+    def get_color(topic_selected):
+        if topic_selected == -1:
+            marker_color = ["#B0BEC5" for _ in topic_list]
+        else:
+            marker_color = ["red" if topic == topic_selected else "#B0BEC5" for topic in topic_list]
+        return [{'marker.color': [marker_color]}]
+
+    # Prepare figure range
+    x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
+    y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
+
+    # Plot topics
+    fig = px.scatter(df, x="x", y="y", size="Size", size_max=40, template="simple_white", labels={"x": "", "y": ""},
+                     hover_data={"Topic": True, "Words": True, "Size": True, "x": False, "y": False})
+    fig.update_traces(marker=dict(color="#B0BEC5", line=dict(width=2, color='DarkSlateGrey')))
+
+    # Update hover order
+    fig.update_traces(hovertemplate="<br>".join(["<b>Topic %{customdata[0]}</b>",
+                                                 "%{customdata[1]}",
+                                                 "Size: %{customdata[2]}"]))
+
+    # Create a slider for topic selection
+    steps = [dict(label=f"Topic {topic}", method="update", args=get_color(topic)) for topic in topic_list]
+    sliders = [dict(active=0, pad={"t": 50}, steps=steps)]
+
+    # Stylize layout
+    fig.update_layout(
+        title={
+            'text': f"{title}",
+            'y': .95,
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(
+                size=22,
+                color="Black")
+        },
+        width=width,
+        height=height,
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+            font_family="Rockwell"
+        ),
+        xaxis={"visible": False},
+        yaxis={"visible": False},
+        sliders=sliders
+    )
+
+    # Update axes ranges
+    fig.update_xaxes(range=x_range)
+    fig.update_yaxes(range=y_range)
+
+    # Add grid in a 'plus' shape
+    fig.add_shape(type="line",
+                  x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
+                  line=dict(color="#CFD8DC", width=2))
+    fig.add_shape(type="line",
+                  x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
+                  line=dict(color="#9E9E9E", width=2))
+    fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
+    fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
+    fig.data = fig.data[::-1]
+
+    return fig
 
 def inspect_words_over_time_based_on_most_frequent_words(df_with_topics, dict_anchor_words, model_and_vectorized_data, topic_to_evaluate, number_of_words, resampling, smoothing, max_value_y):
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
@@ -658,36 +749,6 @@ def inspect_words_over_time_based_on_own_list(df_with_topics, dict_anchor_words,
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
     inspect_words_over_time(df_with_topics, topic_to_evaluate_number, list_words, resampling, smoothing, max_value_y)
 
-def perform_sentiment_analysis(df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
-    analyzer = SentimentIntensityAnalyzer()
-    
-    value_int = list(dict_anchor_words.keys()).index(selected_value)
-    
-    selected_dataset = df_with_topics.loc[(df_with_topics[value_int] == 1) & (df_with_topics['date'] >= dateutil.parser.parse(str(starttime))) & (df_with_topics['date'] < dateutil.parser.parse(str(endtime)))] 
-    
-    selected_dataset['polarity'] = selected_dataset['text'].apply(lambda x: analyzer.polarity_scores(x))
-    selected_dataset = pd.concat([selected_dataset.drop(['polarity'], axis=1), selected_dataset['polarity'].apply(pd.Series)], axis=1)
-    selected_dataset['sentiment'] = selected_dataset['compound'].apply(lambda x: 'positive' if x >0 else 'neutral' if x==0 else 'negative')
-    sns.countplot(y='sentiment', 
-                 data=selected_dataset, 
-                 palette=['#b2d8d8',"#008080", '#db3d13']
-                 );
-    plt.show()
-    
-    g = sns.lineplot(x='date', y='compound', data=selected_dataset)
 
-    g.set(xticklabels=[]) 
-    g.set(title='Sentiment of articles')
-    g.set(xlabel="Time")
-    g.set(ylabel="Sentiment")
-    g.tick_params(bottom=False)
 
-    g.axhline(0, ls='--', c = 'grey')
-    plt.show()
-    
-    sns.boxplot(y='compound', 
-            x='sentiment',
-            palette=['#b2d8d8',"#008080", '#db3d13'], 
-            data=selected_dataset);
-    plt.show()
 
