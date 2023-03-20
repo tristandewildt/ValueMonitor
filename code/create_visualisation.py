@@ -8,6 +8,8 @@ import _pickle as cPickle
 import pickle
 import plotly.express as px
 import plotly.graph_objects as go
+import seaborn as sns
+
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from matplotlib import cm
@@ -21,6 +23,8 @@ from colorama import Fore, Back, Style
 from umap import UMAP
 from typing import List
 from sklearn.preprocessing import MinMaxScaler
+from nltk.sentiment import SentimentIntensityAnalyzer
+
 
 def top_topics_on_values(df_with_topics, selected_value, dict_anchor_words, topics_weights, topics_to_remove_int, top_topics_to_show):
     
@@ -739,6 +743,40 @@ def _plotly_topic_visualization(df: pd.DataFrame,
     fig.data = fig.data[::-1]
 
     return fig
+
+def perform_sentiment_analysis(df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
+    analyzer = SentimentIntensityAnalyzer()
+    
+    value_int = list(dict_anchor_words.keys()).index(selected_value)
+    
+    selected_dataset = df_with_topics.loc[(df_with_topics[value_int] == 1) & (df_with_topics['date'] >= dateutil.parser.parse(str(starttime))) & (df_with_topics['date'] < dateutil.parser.parse(str(endtime)))] 
+    
+    selected_dataset['polarity'] = selected_dataset['text'].apply(lambda x: analyzer.polarity_scores(x))
+    selected_dataset = pd.concat([selected_dataset.drop(['polarity'], axis=1), selected_dataset['polarity'].apply(pd.Series)], axis=1)
+    selected_dataset['sentiment'] = selected_dataset['compound'].apply(lambda x: 'positive' if x >0 else 'neutral' if x==0 else 'negative')
+    sns.countplot(y='sentiment', 
+                 data=selected_dataset, 
+                 palette=['#b2d8d8',"#008080", '#db3d13']
+                 );
+    plt.show()
+    
+    g = sns.lineplot(x='date', y='compound', data=selected_dataset)
+
+    g.set(xticklabels=[]) 
+    g.set(title='Sentiment of articles')
+    g.set(xlabel="Time")
+    g.set(ylabel="Sentiment")
+    g.tick_params(bottom=False)
+
+    g.axhline(0, ls='--', c = 'grey')
+    plt.show()
+    
+    sns.boxplot(y='compound', 
+            x='sentiment',
+            palette=['#b2d8d8',"#008080", '#db3d13'], 
+            data=selected_dataset);
+    plt.show()
+
 
 def inspect_words_over_time_based_on_most_frequent_words(df_with_topics, dict_anchor_words, model_and_vectorized_data, topic_to_evaluate, number_of_words, resampling, smoothing, max_value_y):
     topic_to_evaluate_number = topic_int_or_string(topic_to_evaluate, dict_anchor_words)
