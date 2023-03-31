@@ -649,6 +649,8 @@ def getWordListFromTopicTuples(topic_model, topic_num):
     word_list.append(tup[0])
   return word_list
 
+# Uses the p_y_given_x attribute of topic models to get a scatter-plot for intertopic distance
+# Uses UMAP dimensionality reduction
 def intertopic_distance_viz(topic_model, df_with_topics):
     df_only_topics = df_with_topics.loc[:,0:]
     correlation_matrices = topic_model.p_y_given_x
@@ -726,9 +728,11 @@ def getCountMatrix(lists, result_set):
     result_lists.append(encoded_list)
   return result_lists
 
+# Topic-wise represents the topic models' uniqueness in terms of unique words in each model
 def topic_model_uniqueness(dict_model):
     dict_topic_model_topic = {}
     for topic_model_idx in dict_model.keys():
+        # the int agr to getWordListFromTopicTuples represents the topic number
         dict_topic_model_topic[topic_model_idx] = getWordListFromTopicTuples(dict_model[topic_model_idx],0)
     
     topic_model_names = list(dict_topic_model_topic.keys())
@@ -737,6 +741,7 @@ def topic_model_uniqueness(dict_model):
     for topic_model_idx in dict_topic_model_topic.keys():
         topic_set.update(dict_topic_model_topic[topic_model_idx])
         list_topic_list.append(dict_topic_model_topic[topic_model_idx])
+
     # Define sliders
     row_start_slider = widgets.IntSlider(min=0, max=len(dict_topic_model_topic)-1, step=1, value=0, description='Row Start')
     row_end_slider = widgets.IntSlider(min=1, max=len(dict_topic_model_topic), step=1, value=len(dict_topic_model_topic), description='Row End')
