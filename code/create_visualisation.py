@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import itertools
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,8 @@ import pickle
 import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
+import ipywidgets as widgets
+from IPython.display import display, clear_output
 
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -705,6 +708,67 @@ def intertopic_distance_viz(topic_model, df_with_topics):
         )
     )
     return fig
+
+def getCountMatrix(lists, result_set):
+  result_lists = []
+  one_list = list(itertools.chain.from_iterable(lists))
+  for list_to_check in lists:
+    encoded_list = []
+    for set_item in result_set:
+      if set_item in list_to_check:
+        if one_list.count(set_item) == 1:
+          encoded_list.append(1)
+        else:
+          encoded_list.append(0)
+          # encoded_list.append(one_list.count(set_item))
+      else:
+        encoded_list.append(0)
+    result_lists.append(encoded_list)
+  return result_lists
+
+def topic_model_uniqueness(dict_model):
+    dict_topic_model_topic = {}
+    for topic_model_idx in dict_model.keys():
+        dict_topic_model_topic[topic_model_idx] = getWordListFromTopicTuples(dict_model[topic_model_idx],0)
+    
+    topic_model_names = list(dict_topic_model_topic.keys())
+    list_topic_list = []
+    topic_set = set()
+    for topic_model_idx in dict_topic_model_topic.keys():
+        topic_set.update(dict_topic_model_topic[topic_model_idx])
+        list_topic_list.append(dict_topic_model_topic[topic_model_idx])
+    # Define sliders
+    row_start_slider = widgets.IntSlider(min=0, max=len(dict_topic_model_topic)-1, step=1, value=0, description='Row Start')
+    row_end_slider = widgets.IntSlider(min=1, max=len(dict_topic_model_topic), step=1, value=len(dict_topic_model_topic), description='Row End')
+
+    # Define function to update heatmap
+    def update_heatmap(change):
+        clear_output(wait=True)
+        display(widgets.VBox([row_start_slider, row_end_slider]))
+        
+        row_start = row_start_slider.value
+        row_end = row_end_slider.value
+
+        matrix = getCountMatrix(list_topic_list, topic_set)
+
+        # Convert the matrix to a Pandas dataframe
+        df = pd.DataFrame(matrix, columns=topic_set, index=topic_model_names)
+
+        mask = np.ones_like(df, dtype=bool)
+        mask[row_start:row_end] = False
+
+        sns.set()
+        # plt.figure(figsize=(10, 8))
+        cmap = sns.color_palette(["#EBECF0", "#5FFF5C"])
+        sns.heatmap(df, annot=False, mask=mask, cmap=cmap, cbar_kws={'label': 'Green is the unique words'}, square=True)
+        plt.show()
+
+    # Attach the update function to the sliders
+    row_start_slider.observe(update_heatmap, names='value')
+    row_end_slider.observe(update_heatmap, names='value')
+
+    # Display sliders
+    display(widgets.VBox([row_start_slider, row_end_slider]))
     
 def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove): 
     
