@@ -638,6 +638,73 @@ def compare_words_topics_in_runs (dict_all_df_with_topics, dict_all_topics, dict
     
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
+
+def getWordListFromTopicTuples(topic_model, topic_num):
+  tuples_for_topic = topic_model.get_topics(topic=topic_num, n_words=5)
+  word_list = []
+  for tup in tuples_for_topic:
+    word_list.append(tup[0])
+  return word_list
+
+def intertopic_distance_viz(topic_model, df_with_topics):
+    df_only_topics = df_with_topics.loc[:,0:]
+    correlation_matrices = topic_model.p_y_given_x
+    # calculate inter-topic distances
+    n_topics = df_only_topics.shape[1]
+    inter_topic_dist = np.zeros((n_topics, n_topics))
+
+    for i in range(n_topics):
+        for j in range(i+1, n_topics):
+            dist_ij = np.linalg.norm(correlation_matrices[i] - correlation_matrices[j])
+            inter_topic_dist[i, j] = dist_ij
+            inter_topic_dist[j, i] = dist_ij
+        
+    # create dataframe with inter-topic distances
+    topic_names = [f"Topic {i}" for i in range(n_topics)]
+    df_inter_topic_distances = pd.DataFrame(inter_topic_dist, columns=topic_names, index=topic_names)
+
+    words_column_list = []
+    for i in range(n_topics):
+        words_column_list.append(getWordListFromTopicTuples(topic_model, i))
+    
+    # perform UMAP dimensionality reduction on the inter-topic distance matrix
+    inter_topic_dist = MinMaxScaler().fit_transform(inter_topic_dist)
+    umap_coords = UMAP(n_neighbors=5, min_dist=0.3, metric='euclidean', random_state=42).fit_transform(inter_topic_dist)
+
+        # create dataframe with UMAP coordinates
+    df_umap_result = pd.DataFrame(umap_coords, index=topic_names, columns=['UMAP 1', 'UMAP 2'])
+    df_umap_result['Topic Words'] = words_column_list
+    df_umap_result['topic'] = range(n_topics)
+    filtered_df_umap_result = df_umap_result[df_umap_result['Topic Words'].apply(lambda x: len(x) != 0)]
+
+    def get_color(topic_selected):
+            if topic_selected == -1:
+                marker_color = ["#B0BEC5" for _ in filtered_df_umap_result['topic']]
+            else:
+                marker_color = ["6d6aff" if topic == topic_selected else "#B0BEC5" for topic in filtered_df_umap_result['topic']]
+            return [{'marker.color': [marker_color]}]
+
+    # Create a slider for topic selection
+    steps = [dict(label=f"Topic {topic}", method="update", args=get_color(topic)) for topic in filtered_df_umap_result['topic']]
+    sliders = [dict(active=0, pad={"t": 50}, steps=steps)]
+
+    # create scatter plot of UMAP results
+    fig = px.scatter(filtered_df_umap_result, x='UMAP 1', y='UMAP 2', hover_data=['Topic Words'], hover_name='topic')
+    fig.update_layout(
+        title="UMAP Plot of Corex Topics",
+        xaxis_title="UMAP Dimension 1",
+        yaxis_title="UMAP Dimension 2",
+        width=600,
+        height=600,
+        autosize=False,
+        sliders=sliders, 
+        updatemenus=[{'type': 'buttons', 'showactive': False}],
+        hoverlabel=dict(
+            font_size=12,
+            font_family="Rockwell"
+        )
+    )
+    return fig
     
 def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove): 
     
