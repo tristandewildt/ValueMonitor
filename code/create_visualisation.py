@@ -434,6 +434,74 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
 
+def create_vis_number_values_per_documents(df_with_topics, dict_anchor_words, resampling, smoothing, max_value_y):
+    
+    copy_df_with_topics = df_with_topics.copy()
+    copy_dict_anchor_words = dict_anchor_words.copy()
+    
+    list_topics = list(range(len(copy_dict_anchor_words)))
+    list_datasets = df_with_topics.groupby(['dataset']).size().index.tolist()
+        
+    df_value_in_datasets = pd.DataFrame()
+    for dataset in list_datasets:    
+            
+        copy_df_with_topics = df_with_topics.copy()
+        copy_dict_anchor_words = dict_anchor_words.copy()
+        
+        copy_df_with_topics = copy_df_with_topics[copy_df_with_topics['dataset'] == dataset]
+        copy_df_with_topics['count_values'] = copy_df_with_topics[list_topics].sum(axis=1)
+    
+        # number of values per document
+        df_number_values = copy_df_with_topics.set_index('date')
+        df_number_values = df_number_values['count_values'].resample(resampling).sum()
+    
+        # number of documents
+        df_number_documents = copy_df_with_topics.set_index('date').resample(resampling).size().reset_index(name="count")
+        df_number_documents = df_number_documents.set_index('date')
+    
+        df_number_values = df_number_values.div(df_number_documents["count"], axis=0)
+        combined_df = pd.concat([df_number_values, df_number_documents], axis=1)
+        combined_df = combined_df.fillna(0)
+        combined_df = combined_df.rename(columns = {0: dataset})
+        df_value_in_datasets = pd.concat([df_value_in_datasets, combined_df[dataset]], axis=1)
+    
+    df_value_in_datasets = df_value_in_datasets.sort_index()
+    x = pd.Series(df_value_in_datasets.index.values)
+    x = x.dt.to_pydatetime().tolist()
+        
+    x = [ z - relativedelta(years=1) for z in x]
+            
+    sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
+        
+    fig, ax1 = plt.subplots()
+    for dataset in list_datasets:
+            ysmoothed = gaussian_filter1d(df_value_in_datasets[dataset], sigma=sigma)
+            ax1.plot(x, ysmoothed, label=str(dataset), linewidth=2)
+            
+    ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
+    ax1.set_ylabel('Percentage of documents addressing each value \n per unit of time (lines)  (%)', fontsize=12, fontweight="bold")
+    ax1.legend(prop={'size': 10})
+            
+    timestamp_0 = x[0]
+    timestamp_1 = x[1]
+                
+    width = (timestamp_1 - timestamp_0).total_seconds() / 86400 * 0.8
+    
+    ax1.patch.set_visible(False)
+            
+    ax1.set_ylim([0,max_value_y])
+            
+        
+    fig.tight_layout() 
+    plt.title("Average number of values per document in datasets")
+    plt.figure(figsize=(20,14), dpi= 400)
+        
+        
+    plt.rcParams["figure.figsize"] = [12,6]
+    plt.show()
+
+
+
 def create_vis_value_over_time_in_diff_datasets(df_with_topics, selected_value, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
     
     values_to_include_in_visualisation.append(selected_value)
@@ -475,6 +543,7 @@ def create_vis_value_over_time_in_diff_datasets(df_with_topics, selected_value, 
         df_counts_value = pd.DataFrame(combined_df[str("count_"+str(dataset))])
         df_counts = pd.concat([df_counts, df_counts_value], axis=1)
     
+    df_value_in_datasets = df_value_in_datasets.sort_index()
     x = pd.Series(df_value_in_datasets.index.values)
     x = x.dt.to_pydatetime().tolist()
     
