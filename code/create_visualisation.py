@@ -433,7 +433,93 @@ def create_vis_values_over_time(df_with_topics, dict_anchor_words, resampling, v
 
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
+
+def create_vis_value_over_time_in_diff_datasets(df_with_topics, selected_value, dict_anchor_words, resampling, values_to_include_in_visualisation, smoothing, max_value_y):
     
+    values_to_include_in_visualisation.append(selected_value)
+    copy_df_with_topics = df_with_topics.copy()
+    copy_dict_anchor_words = dict_anchor_words.copy()
+        
+    list_datasets = df_with_topics.groupby(['dataset']).size().index.tolist()
+    
+    df_value_in_datasets = pd.DataFrame()
+    df_counts = pd.DataFrame()
+    for dataset in list_datasets:    
+        
+        copy_df_with_topics = df_with_topics.copy()
+        copy_dict_anchor_words = dict_anchor_words.copy()
+    
+        copy_df_with_topics = copy_df_with_topics[copy_df_with_topics['dataset'] == dataset]
+          
+        df_with_topics_freq = copy_df_with_topics.set_index('date').resample(resampling).size().reset_index(name="count")
+        df_with_topics_freq = df_with_topics_freq.set_index('date')
+    
+        df_frequencies = copy_df_with_topics.set_index('date')
+        df_frequencies = df_frequencies.resample(resampling).sum()
+            
+        list_topics = list(range(len(copy_dict_anchor_words)))
+        df_frequencies = df_frequencies[list_topics]
+          
+        df_frequencies = df_frequencies[list_topics].div(df_with_topics_freq["count"], axis=0)
+        combined_df = pd.concat([df_frequencies, df_with_topics_freq], axis=1)
+        combined_df = combined_df.fillna(0)
+           
+        name_values = list(copy_dict_anchor_words.keys())
+        
+        combined_df[list_topics] = combined_df[list_topics] * 100
+        combined_df.columns = name_values + [str("count_"+str(dataset))]
+        combined_df_value = pd.DataFrame(combined_df[selected_value])
+        combined_df_value = combined_df_value.rename(columns={selected_value: dataset})
+        df_value_in_datasets = pd.concat([df_value_in_datasets, combined_df_value], axis=1)
+    
+        df_counts_value = pd.DataFrame(combined_df[str("count_"+str(dataset))])
+        df_counts = pd.concat([df_counts, df_counts_value], axis=1)
+    
+    x = pd.Series(df_value_in_datasets.index.values)
+    x = x.dt.to_pydatetime().tolist()
+    
+    x = [ z - relativedelta(years=1) for z in x]
+        
+    sigma = (np.log(len(x)) - 1.25) * 1.2 * smoothing
+    
+    
+    fig, ax1 = plt.subplots()
+    for dataset in list_datasets:
+            ysmoothed = gaussian_filter1d(df_value_in_datasets[dataset], sigma=sigma)
+            ax1.plot(x, ysmoothed, label=str(dataset), linewidth=2)
+        
+    ax1.set_xlabel('Time', fontsize=12, fontweight="bold")
+    ax1.set_ylabel('Percentage of documents addressing each value \n per unit of time (lines)  (%)', fontsize=12, fontweight="bold")
+    ax1.legend(prop={'size': 10})
+        
+    timestamp_0 = x[0]
+    timestamp_1 = x[1]
+        
+    
+    #width = (time.mktime(timestamp_1.timetuple()) - time.mktime(timestamp_0.timetuple())) / 86400 *.8
+    width = (timestamp_1 - timestamp_0).total_seconds() / 86400 * 0.8
+           
+    ax2 = ax1.twinx()
+    for dataset in list_datasets:
+        ax2.bar(x, df_counts[str("count_"+str(dataset))].tolist(), width=width, alpha=0.1 #color='gainsboro'
+              )
+    ax2.set_ylabel('Number of documents in the dataset \n per unit of time (bars)', fontsize=12, fontweight="bold")
+        
+    ax1.set_zorder(ax2.get_zorder()+1)
+    ax1.patch.set_visible(False)
+        
+    ax1.set_ylim([0,max_value_y])
+        
+    
+    fig.tight_layout() 
+    plt.title("Change in the occurence of "+str(selected_value), fontsize=16, fontweight="bold")
+    plt.figure(figsize=(20,14), dpi= 400)
+    
+    
+    plt.rcParams["figure.figsize"] = [12,6]
+    plt.show()
+
+
 def coexistence_values(df_with_topics, dict_anchor_words, resampling, values_selected, smoothing, max_value_y):
 
     copy_df_with_topics = df_with_topics.copy()
