@@ -411,7 +411,7 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
                     print("")
         print("")
     
-def print_sample_articles_topic_2(df_with_topics, dict_anchor_words, topics, selected_value, selected_topic, size_sample, window, show_extracts, show_full_text):
+def print_sample_articles_value_and_topic(df_with_topics, dict_anchor_words, topics, selected_value, selected_topic, size_sample, window, show_extracts, show_full_text):
     
     words_topics = topics
     words_selected_topic = topics[int(selected_topic)]
@@ -440,6 +440,10 @@ def print_sample_articles_topic_2(df_with_topics, dict_anchor_words, topics, sel
         print('\033[1m' + 'Article '+str(index) + '\033[0m')
         if 'title' in sampled_df:
             print("Title: "+str(row['title']))
+        if 'Titel' in sampled_df:
+            print("Title: "+str(row['Titel']))
+        if 'date' in sampled_df:
+            print("Date: "+str(row['date']))
         if 'dataset' in sampled_df:
             print("Dataset: "+str(row['dataset']))
         
