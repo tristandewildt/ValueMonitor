@@ -384,6 +384,8 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
         print('\033[1m' + 'Article '+str(index) + '\033[0m')
         if 'title' in sampled_df:
             print("Title: "+str(row['title']))
+        if 'date' in sampled_df:
+            print("Date: "+str(row['date']))
         if 'dataset' in sampled_df:
             print("Dataset: "+str(row['dataset']))
         
