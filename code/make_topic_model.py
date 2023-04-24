@@ -411,6 +411,73 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
                     print("")
         print("")
     
+def print_sample_articles_topic_2(df_with_topics, dict_anchor_words, topics, selected_value, selected_topic, size_sample, window, show_extracts, show_full_text):
+    
+    words_topics = topics
+    words_selected_topic = topics[int(selected_topic)]
+
+    #window = 10
+    
+    list_values = list(dict_anchor_words.keys())
+    
+    if type(selected_value) == str:
+        selected_value_int = list_values.index(selected_value)
+    else:
+        selected_value_int = selected_value
+    
+    df_with_topics_to_analyse = df_with_topics.loc[df_with_topics[selected_value_int] > 0]
+    
+    
+    sampled_df = df_with_topics_to_analyse.sample(n = min(size_sample, len(df_with_topics_to_analyse)))
+    if type(selected_value) == str:
+        print("Keywords related to "+str(selected_value)+" found in text:"+str(words_topics[selected_value]))
+    else:
+        print("Keywords related to topic "+str(selected_value))  
+    
+    print("")
+    
+    for index, row in sampled_df.iterrows():
+        print('\033[1m' + 'Article '+str(index) + '\033[0m')
+        if 'title' in sampled_df:
+            print("Title: "+str(row['title']))
+        if 'dataset' in sampled_df:
+            print("Dataset: "+str(row['dataset']))
+        
+        text_combined_tagged = row['text_tagged']
+        text_combined_not_tagged = row['text']
+        
+        tokens = text_combined_not_tagged.split() #### check here with spaces
+
+        if show_full_text == True:
+            for word in words_topics[selected_value]:
+                text_combined_not_tagged = re.sub(word, '\033[1m' + '[' + str(red(word)) + ']' + '\033[0m', text_combined_not_tagged, flags=re.IGNORECASE)
+            for word in words_selected_topic:
+                text_combined_not_tagged = re.sub(word, '\033[1m' + '[' + str(green(word)) + ']' + '\033[0m', text_combined_not_tagged, flags=re.IGNORECASE)
+            print(text_combined_not_tagged)
+    
+        if show_extracts == True:
+            print("Values:")
+            print("")
+            for index in range(len(tokens)):
+                if tokens[index].lower() in words_topics[selected_value]:
+                    start = max(0, index-window)
+                    finish = min(len(tokens), index+window+1)
+                    lhs = " ".join( tokens[start:index] )
+                    rhs = " ".join( tokens[index+1:finish] )
+                    conc = "%s [%s] %s" % (" - "+str(lhs), '\033[1m' + str(red(tokens[index])) + '\033[0m', rhs)
+                    print(conc)
+                    print("")
+                if tokens[index].lower() in words_selected_topic:
+                    start = max(0, index-window)
+                    finish = min(len(tokens), index+window+1)
+                    lhs = " ".join( tokens[start:index] )
+                    rhs = " ".join( tokens[index+1:finish] )
+                    conc = "%s [%s] %s" % (" - "+str(lhs), '\033[1m' + str(green(tokens[index])) + '\033[0m', rhs)
+                    print(conc)
+                    print("")
+        print("")
+        
+
 def import_topic_model(combined_STOA_technologies_saved_topic_model, df):
     
     imported_data = combined_STOA_technologies_saved_topic_model
