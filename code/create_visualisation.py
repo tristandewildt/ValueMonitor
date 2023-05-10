@@ -899,6 +899,25 @@ def _plotly_topic_visualization(df: pd.DataFrame,
 
     return fig
 
+def create_df_with_topics_cooccurence_value(df, df_to_evaluate, number_of_topics_to_find, number_segments):
+    df_value = df_to_evaluate.drop(columns=[col for col in df_to_evaluate if col in list(range(number_of_topics_to_find))])
+    series_text = []
+    for index, row in df_value.iterrows():
+        tokens = row['text_tagged'].split()
+        length_text = len(tokens)
+        window = round(length_text / (number_segments + 1) * 2)
+        for i in range(number_segments):
+            index = round(length_text / (number_segments + 1) * (i + 1))
+            window = max(20, round(length_text / (number_segments + 1) * 2))
+            start = max(0, index-window)
+            finish = min(len(tokens), index+window+1)
+            text = " ".join(tokens[start:finish])
+            this_row = row
+            this_row['text_tagged'] = text
+            series_text.append(this_row.tolist())
+            df_for_cooccurence = pd.DataFrame(series_text, columns = list(df.columns.values))
+    return(df_for_cooccurence)
+
 def perform_sentiment_analysis(df_with_topics, selected_value, dict_anchor_words, starttime, endtime):
     analyzer = SentimentIntensityAnalyzer()
     

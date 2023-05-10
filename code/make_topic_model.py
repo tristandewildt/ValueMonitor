@@ -361,7 +361,7 @@ def print_sample_articles_topic(df_with_topics, dict_anchor_words, topics, selec
     words_topics = topics
 
     #window = 10
-    
+
     list_values = list(dict_anchor_words.keys())
     
     if type(selected_value) == str:
@@ -462,7 +462,7 @@ def print_sample_articles_value_and_topic(df_with_topics, dict_anchor_words, top
             print(text_combined_not_tagged)
     
         if show_extracts == True:
-            print("Values:")
+            print("Words values and topics:")
             print("")
             for index in range(len(tokens)):
                 if tokens[index].lower() in words_topics[selected_value]:
