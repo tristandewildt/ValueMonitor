@@ -810,8 +810,9 @@ def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove):
             list_topics_to_remove.append(i)
     
     topic_list = [topic for topic in topic_list if topic not in list_topics_to_remove]
-    df_only_topics = df_only_topics[topic_list]
-    frequencies = df_only_topics.sum().tolist()
+    #df_only_topics = df_only_topics[topic_list]
+    #frequencies = df_only_topics.sum().tolist()
+    frequencies = [i / len(df_only_topics) * 100 for i in frequencies]
     
     embeddings = df_only_topics.T.to_numpy()
     embeddings = MinMaxScaler().fit_transform(embeddings)
@@ -822,7 +823,7 @@ def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove):
         words.append(' | '.join(topics[i][:5]))
     
     df = pd.DataFrame({"x": embeddings[:, 0], "y": embeddings[:, 1],
-                       "Topic": topic_list, "Words": words, "Size": frequencies})
+                       "Topic": topic_list, "Words": words, "Size (%)": frequencies})
 
     return _plotly_topic_visualization(df, topic_list, title, width, height)
 
@@ -908,7 +909,7 @@ def create_df_with_topics_cooccurence_value(df, df_to_evaluate, number_of_topics
         window = round(length_text / (number_segments + 1) * 2)
         for i in range(number_segments):
             index = round(length_text / (number_segments + 1) * (i + 1))
-            window = max(20, round(length_text / (number_segments + 1) * 2))
+            window = max(30, round(length_text / (number_segments + 1) * 2))
             start = max(0, index-window)
             finish = min(len(tokens), index+window+1)
             text = " ".join(tokens[start:finish])
