@@ -846,14 +846,14 @@ def _plotly_topic_visualization(df: pd.DataFrame,
     y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
 
     # Plot topics
-    fig = px.scatter(df, x="x", y="y", size="Size", size_max=40, template="simple_white", labels={"x": "", "y": ""},
-                     hover_data={"Topic": True, "Words": True, "Size": True, "x": False, "y": False})
+    fig = px.scatter(df, x="x", y="y", size="Size (%)", size_max=40, template="simple_white", labels={"x": "", "y": ""},
+                     hover_data={"Topic": True, "Words": True, "Size (%)": True, "x": False, "y": False})
     fig.update_traces(marker=dict(color="#B0BEC5", line=dict(width=2, color='DarkSlateGrey')))
 
     # Update hover order
     fig.update_traces(hovertemplate="<br>".join(["<b>Topic %{customdata[0]}</b>",
                                                  "%{customdata[1]}",
-                                                 "Size: %{customdata[2]}"]))
+                                                 "Size (%): %{customdata[2]}"]))
 
     # Create a slider for topic selection
     steps = [dict(label=f"Topic {topic}", method="update", args=get_color(topic)) for topic in topic_list]
