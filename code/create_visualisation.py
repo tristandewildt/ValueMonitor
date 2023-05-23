@@ -810,8 +810,8 @@ def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove):
             list_topics_to_remove.append(i)
     
     topic_list = [topic for topic in topic_list if topic not in list_topics_to_remove]
-    #df_only_topics = df_only_topics[topic_list]
-    #frequencies = df_only_topics.sum().tolist()
+    df_only_topics = df_only_topics[topic_list]
+    frequencies = df_only_topics.sum().tolist()
     frequencies = [round(i / len(df_only_topics) * 100, 0) for i in frequencies]
     
     embeddings = df_only_topics.T.to_numpy()
