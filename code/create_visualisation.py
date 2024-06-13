@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import itertools
 import time
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +10,8 @@ import pickle
 import plotly.express as px
 import plotly.graph_objects as go
 import seaborn as sns
+import ipywidgets as widgets
+from IPython.display import display, clear_output
 
 
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -793,6 +796,139 @@ def compare_words_topics_in_runs (dict_all_df_with_topics, dict_all_topics, dict
     
     plt.rcParams["figure.figsize"] = [12,6]
     plt.show()
+
+def getWordListFromTopicTuples(topic_model, topic_num):
+  tuples_for_topic = topic_model.get_topics(topic=topic_num, n_words=5)
+  word_list = []
+  for tup in tuples_for_topic:
+    word_list.append(tup[0])
+  return word_list
+
+# Uses the p_y_given_x attribute of topic models to get a scatter-plot for intertopic distance
+# Uses UMAP dimensionality reduction
+def intertopic_distance_viz(topic_model, df_with_topics):
+    df_only_topics = df_with_topics.loc[:,0:]
+    correlation_matrices = topic_model.p_y_given_x
+    # calculate inter-topic distances
+    n_topics = df_only_topics.shape[1]
+    inter_topic_dist = np.zeros((n_topics, n_topics))
+
+    for i in range(n_topics):
+        for j in range(i+1, n_topics):
+            dist_ij = np.linalg.norm(correlation_matrices[i] - correlation_matrices[j])
+            inter_topic_dist[i, j] = dist_ij
+            inter_topic_dist[j, i] = dist_ij
+        
+    # create dataframe with inter-topic distances
+    topic_names = [f"Topic {i}" for i in range(n_topics)]
+    df_inter_topic_distances = pd.DataFrame(inter_topic_dist, columns=topic_names, index=topic_names)
+
+    words_column_list = []
+    for i in range(n_topics):
+        words_column_list.append(getWordListFromTopicTuples(topic_model, i))
+    
+    # perform UMAP dimensionality reduction on the inter-topic distance matrix
+    inter_topic_dist = MinMaxScaler().fit_transform(inter_topic_dist)
+    umap_coords = UMAP(n_neighbors=5, min_dist=0.3, metric='euclidean', random_state=42).fit_transform(inter_topic_dist)
+
+        # create dataframe with UMAP coordinates
+    df_umap_result = pd.DataFrame(umap_coords, index=topic_names, columns=['UMAP 1', 'UMAP 2'])
+    df_umap_result['Topic Words'] = words_column_list
+    df_umap_result['topic'] = range(n_topics)
+    filtered_df_umap_result = df_umap_result[df_umap_result['Topic Words'].apply(lambda x: len(x) != 0)]
+
+    def get_color(topic_selected):
+            if topic_selected == -1:
+                marker_color = ["#B0BEC5" for _ in filtered_df_umap_result['topic']]
+            else:
+                marker_color = ["6d6aff" if topic == topic_selected else "#B0BEC5" for topic in filtered_df_umap_result['topic']]
+            return [{'marker.color': [marker_color]}]
+
+    # Create a slider for topic selection
+    steps = [dict(label=f"Topic {topic}", method="update", args=get_color(topic)) for topic in filtered_df_umap_result['topic']]
+    sliders = [dict(active=0, pad={"t": 50}, steps=steps)]
+
+    # create scatter plot of UMAP results
+    fig = px.scatter(filtered_df_umap_result, x='UMAP 1', y='UMAP 2', hover_data=['Topic Words'], hover_name='topic')
+    fig.update_layout(
+        title="UMAP Plot of Corex Topics",
+        xaxis_title="UMAP Dimension 1",
+        yaxis_title="UMAP Dimension 2",
+        width=600,
+        height=600,
+        autosize=False,
+        sliders=sliders, 
+        updatemenus=[{'type': 'buttons', 'showactive': False}],
+        hoverlabel=dict(
+            font_size=12,
+            font_family="Rockwell"
+        )
+    )
+    return fig
+
+def getCountMatrix(lists, result_set):
+  result_lists = []
+  one_list = list(itertools.chain.from_iterable(lists))
+  for list_to_check in lists:
+    encoded_list = []
+    for set_item in result_set:
+      if set_item in list_to_check:
+        if one_list.count(set_item) == 1:
+          encoded_list.append(1)
+        else:
+          encoded_list.append(0)
+          # encoded_list.append(one_list.count(set_item))
+      else:
+        encoded_list.append(0)
+    result_lists.append(encoded_list)
+  return result_lists
+
+# Topic-wise represents the topic models' uniqueness in terms of unique words in each model
+def topic_model_uniqueness(dict_model):
+    dict_topic_model_topic = {}
+    for topic_model_idx in dict_model.keys():
+        # the int agr to getWordListFromTopicTuples represents the topic number
+        dict_topic_model_topic[topic_model_idx] = getWordListFromTopicTuples(dict_model[topic_model_idx],0)
+    
+    topic_model_names = list(dict_topic_model_topic.keys())
+    list_topic_list = []
+    topic_set = set()
+    for topic_model_idx in dict_topic_model_topic.keys():
+        topic_set.update(dict_topic_model_topic[topic_model_idx])
+        list_topic_list.append(dict_topic_model_topic[topic_model_idx])
+
+    # Define sliders
+    row_start_slider = widgets.IntSlider(min=0, max=len(dict_topic_model_topic)-1, step=1, value=0, description='Row Start')
+    row_end_slider = widgets.IntSlider(min=1, max=len(dict_topic_model_topic), step=1, value=len(dict_topic_model_topic), description='Row End')
+
+    # Define function to update heatmap
+    def update_heatmap(change):
+        clear_output(wait=True)
+        display(widgets.VBox([row_start_slider, row_end_slider]))
+        
+        row_start = row_start_slider.value
+        row_end = row_end_slider.value
+
+        matrix = getCountMatrix(list_topic_list, topic_set)
+
+        # Convert the matrix to a Pandas dataframe
+        df = pd.DataFrame(matrix, columns=topic_set, index=topic_model_names)
+
+        mask = np.ones_like(df, dtype=bool)
+        mask[row_start:row_end] = False
+
+        sns.set()
+        # plt.figure(figsize=(10, 8))
+        cmap = sns.color_palette(["#EBECF0", "#5FFF5C"])
+        sns.heatmap(df, annot=False, mask=mask, cmap=cmap, cbar_kws={'label': 'Green is the unique words'}, square=True)
+        plt.show()
+
+    # Attach the update function to the sliders
+    row_start_slider.observe(update_heatmap, names='value')
+    row_end_slider.observe(update_heatmap, names='value')
+
+    # Display sliders
+    display(widgets.VBox([row_start_slider, row_end_slider]))
     
 def intertopic_distance_map(df_with_topics, topics, list_topics_to_remove): 
     
